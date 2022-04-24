@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <script>
+        let session = window.sessionStorage.getItem("session")? window.sessionStorage.getItem("session") : "%session%"
+        if(session != "%session%")window.sessionStorage.clear()
+        window.sessionStorage.setItem("session", "%session%")
+    </script>
+</head>
+<body style="width: 100%; height: 100vh;">
+    %script%
+</body>
+</html>
