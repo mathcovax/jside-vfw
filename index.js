@@ -6,15 +6,27 @@ const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const upload = require(__dirname + "/localSources/upload.js")
 
+jside.httpAcces
+
 class jside{
+    /**
+     * The constructor launch web server.
+     * @param {number} port - This is the port used by web server.
+     * @param {string} message - It's the message sends when server is ready.
+     */
     constructor(port=80, message=null){
 
         for(const script of fs.readdirSync(__dirname + "/webSources/defaultScripts")){
-            this.constructor.index = this.constructor.index.replace("%script%", '<script src="/jside/scripts/' + script + '"></script> %script%')
+            this.constructor.index = this.constructor.index.replace("{script}", function(item){
+                if(item != "{script}"){
+                    return false
+                }
+                return "\n<script>\n" + fs.readFileSync(__dirname + "/webSources/defaultScripts/" + script, "utf8") + "\n</script>\n{script}"
+            })
         }
-        this.constructor.index = this.constructor.index.replace("%script%", "")
-        while(this.constructor.index.indexOf("%session%") >= 0){
-            this.constructor.index = this.constructor.index.replace("%session%", this.constructor.session)
+        this.constructor.index = this.constructor.index.replace("{script}", "")
+        while(this.constructor.index.indexOf("{session}") >= 0){
+            this.constructor.index = this.constructor.index.replace("{session}", this.constructor.session)
         }
 
         this.constructor.#app.use(cookieParser())
@@ -33,7 +45,7 @@ class jside{
             else if(req.headers.jside && !req.baseUrl[0]){
                 res.redirect("/" + this.constructor.defaultRedirect + req.url.substring(1))
             }
-            else if(req.baseUrl[0] == "jside" && req.method == "GET"){
+            else if(req.baseUrl[0] == "jside" && req.baseUrl[1] == "scripts" && req.method == "GET"){
                 this.constructor.#modules["jside"].GET(req, res)
             }
             else if((!req.headers.jside && this.constructor.#modules[req.baseUrl[0]]) || !req.baseUrl[0]){
@@ -62,9 +74,21 @@ class jside{
         })
 
     }
-
-    static parametersApp = () => {}
+    /**
+     * This parameter should be assigned to a function because he called as this in constructor. 
+     * It allows you to apply additional parameters to the express module. 
+     * Ex : `jside.parametersApp = function(app){app.set('trust proxy', true)}`
+     * @param {object} app - The arg "app" is the object of express module. He is always give when this function is call by constructor.
+     */
+    static parametersApp = (app) => {}
     
+    /**
+     * This function create a module.
+     * The name's module is a first value of url path. 
+     * Ex : `http://www.fesse.fr/callipyge/charnu`
+     * In this exemple, the called module is `callipyge`.
+     * @param {string} name - Module's name.
+     */
     static createModule(name){
         name = name[0] == "/"? name.substring(1) : name
         name = name[name.length-1] == "/"? name.substring(0, name.length-1) : name
@@ -103,6 +127,11 @@ class jside{
         }
     }
 
+    /**
+     * `httpAccess` is used to give an authorization when a request is send to module.
+     * @param {string} name - Module's name.
+     * @param {function} cnd - The function in arg `cnd` it's called when server receive HTTP request, if she return `true`, the request accessed to module. this function is always call with 2 arg, `req` in first and `res` in second.
+     */
     static httpAcces(name, cnd){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].httpAcces = cnd
