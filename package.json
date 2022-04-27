@@ -1,6 +1,6 @@
 {
   "name": "jside-vfw",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "VisualFrameWork with easy component systeme whitch use Express, EJS and socket.io",
   "main": "index.js",
   "scripts": {

@@ -1,5 +1,5 @@
 class component{
-    constructor(div){
+    constructor(div, body={}){
         this.#div = div
         this.#waitClass = div.className
         this.#name = this.#div.dataset.name
@@ -7,7 +7,7 @@ class component{
         this.#id = Date.now()
         if(this.constructor.sessionComponent[this.#name]){
             this.#html = this.constructor.sessionComponent[this.#name]
-            this.refresh()
+            this.refresh(body)
         }
         else{
             fetch(window.location.origin + "/jside/component/" + this.#path + "/" + this.#name, {
@@ -17,7 +17,7 @@ class component{
                 this.constructor.sessionComponent[this.#name] = response
                 this.#html = response
                 window.sessionStorage.setItem("component", JSON.stringify(this.constructor.sessionComponent))
-                this.refresh()
+                this.refresh(body)
             }).catch(this.#error)
         }
     }
@@ -30,6 +30,7 @@ class component{
         div.children[0].id = this.#id
         this.#div.outerHTML = div.innerHTML
         this.#div = document.getElementById(this.#id)
+        this.#div.dataset.name = this.#name
         this.#end()
     }
 
