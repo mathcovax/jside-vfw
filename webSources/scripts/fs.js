@@ -4,7 +4,7 @@ window.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL ||  window.w
 
 let fileSystem
 
-const launchFileSystem = async (size=1000000000) => {
+var launchFileSystem = async (size=1000000000) => {
     return new Promise((resolve) => {
         navigator.webkitPersistentStorage.requestQuota(size, (rep) => {
             if(rep == 0){
@@ -23,7 +23,7 @@ const launchFileSystem = async (size=1000000000) => {
 }
 
 
-const loopDir = async (path) => {
+var loopDir = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             let temp = directoryEntry.createReader()
@@ -34,7 +34,7 @@ const loopDir = async (path) => {
     })
 }
 
-const removeDir = async (path) => {
+var removeDir = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             directoryEntry.removeRecursively(() => {
@@ -44,7 +44,7 @@ const removeDir = async (path) => {
     })
 }
 
-const removeFile = async (path) => {
+var removeFile = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getFile(path, { create: true }, (file) => {
             file.remove(() => {
@@ -54,7 +54,7 @@ const removeFile = async (path) => {
     })
 }
 
-const createDir = (path) => {
+var createDir = (path) => {
     return new Promise((resolve) => {
         fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             resolve()
@@ -62,7 +62,7 @@ const createDir = (path) => {
     })
 }
 
-const writeFile = async (path, base64) => {
+var writeFile = async (path, base64) => {
     if(await fileExist(path)){
         await removeFile(path)
     }
@@ -76,7 +76,7 @@ const writeFile = async (path, base64) => {
     })
 }
 
-const appendFile = async (path, base64) => {
+var appendFile = async (path, base64) => {
     return new Promise((resolve) => {
         fileSystem.getFile(path, { create: true }, (file) => {
             file.createWriter((content) => {
@@ -88,7 +88,7 @@ const appendFile = async (path, base64) => {
     })
 }
 
-const folderExist = async (path) => {
+var folderExist = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getDirectory(path, {}, () => {
             resolve(true)
@@ -96,7 +96,7 @@ const folderExist = async (path) => {
     })
 }
 
-const fileExist = async (path) => {
+var fileExist = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getFile(path, {}, () => {
             resolve(true)
@@ -104,7 +104,7 @@ const fileExist = async (path) => {
     })
 }
 
-const readFile = async (path) => {
+var readFile = async (path) => {
     return new Promise((resolve) => {
         fileSystem.getFile(path, {}, (fileEntry) => {
             fileEntry.file((file) => {
@@ -118,7 +118,7 @@ const readFile = async (path) => {
     })
 }
 
-function base64toBlob(base64Data, contentType) {
+var base64toBlob = function(base64Data, contentType) {
     contentType = contentType || '';
     var sliceSize = 1024;
     var byteCharacters = atob(base64Data);
@@ -139,6 +139,22 @@ function base64toBlob(base64Data, contentType) {
     return new Blob(byteArrays, { type: contentType });
 }
 
-function errorHandler(e) {
+var errorHandler = function(e) {
     console.error(e);
 }
+
+tp.on("unload", document.currentScript.dataset.src, function(e){
+    errorHandler = undefined
+    base64toBlob = undefined
+    readFile = undefined
+    fileExist = undefined
+    folderExist = undefined
+    appendFile = undefined
+    writeFile = undefined
+    createDir = undefined
+    removeFile = undefined
+    removeDir = undefined
+    loopDir = undefined
+    launchFileSystem = undefined
+    fileSystem = undefined
+})

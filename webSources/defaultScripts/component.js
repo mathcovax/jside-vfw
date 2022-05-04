@@ -24,14 +24,37 @@ class component{
 
     async refresh(body={}){
         this.#div.className += " " + this.#waitClass
-        this.#removeJS(this.#div.children)
+        this.#removeInteract()
         let div = document.createElement('div')
         div.innerHTML = ejs.render(this.#html, await this.#request(body))
         div.children[0].id = this.#id
+        div.children[0].dataset.name = this.#name
         this.#div.outerHTML = div.innerHTML
         this.#div = document.getElementById(this.#id)
-        this.#div.dataset.name = this.#name
+        this.#loadHref()
+        this.#loadScript()
         this.#end()
+    }
+
+    #loadScript(){
+        for(const s of this.#div.querySelectorAll("script")){
+            let js = document.createElement("script")
+            js.innerHTML = s.innerHTML
+            s.parentNode.replaceChild(js, s)
+            js.remove()
+            continue
+        }
+    }
+
+    #loadHref(){
+        for(const a of this.#div.querySelectorAll("a")){
+            if(a.href){
+                a.onclick = (e) => {
+                    new tp(a.href.replace(window.location.origin, ""))
+                    return false
+                }
+            }
+        }
     }
 
     async #request(body){
@@ -78,11 +101,9 @@ class component{
         }
     }
 
-    #removeJS(E){
-        for(const element of E){
-            element.onclick = ""
-            this.#removeJS(element.children)
-        }
+    #removeInteract(){
+        this.#div.style.pointerEvents = "none"
+        this.#div.style.userSelect = "none"
         return
     }
 

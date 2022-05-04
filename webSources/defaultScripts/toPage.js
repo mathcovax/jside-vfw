@@ -1,7 +1,7 @@
 class tp{
     constructor(newUrl, oldUrl=window.location.href){
         
-        newUrl = this.constructor.#rectiLink(newUrl)
+        newUrl = newUrl.split("?")[1]? this.constructor.#rectiLink(newUrl) : this.constructor.#rectiLink(newUrl) + loc.urlArgs
         if(this.constructor.#page[newUrl.split("?")[0]]){
             this.constructor.#upDatePage(this.constructor.#page[newUrl.split("?")[0]], newUrl, oldUrl)
         }
@@ -26,6 +26,7 @@ class tp{
         else{
             document.body.replaceWith(newDoc.body)
         }
+        this.#loadHref()
         await this.#unloadHead(newDoc.head)
         window.history.pushState({}, null, newUrl)
         await this.#loadScripts(document.body, newUrl)
@@ -63,6 +64,17 @@ class tp{
         }
     }
 
+    static async #loadHref(){
+        for(const a of document.body.querySelectorAll("a")){
+            if(a.href){
+                a.onclick = (e) => {
+                    new tp(a.href.replace(window.location.origin, ""))
+                    return false
+                }
+            }
+        }
+    }
+
     static async #unloadHead(mhead){
         for(const he of document.head.children){
             if(mhead.innerHTML.indexOf(he.outerHTML) == -1)he.remove()
@@ -70,23 +82,28 @@ class tp{
     }
 
     static async #loadScripts(doc, newUrl){
-        for(const script of doc.children){
-            if(script.nodeName != "SCRIPT") continue
-            if(!this.#scripts[script.src]){
+        for(const script of document.body.querySelectorAll("script")){
+            let js = document.createElement("script")
+            if(!script.src){
+                js.innerHTML = script.innerHTML
+                script.parentNode.replaceChild(js, script)
+                js.remove()
+                continue
+            }
+            else if(!this.#scripts[script.src]){
+                this.#scriptsPage[newUrl.split("?")[0]] = []
                 this.#scripts[script.src] = {
                     load: ()=>{},
                     unload: ()=>{},
-                    returnLoad: {}
+                    returnLoad: {},
+                    script: await (await fetch(script.src, { method: "GET", headers: { "jside": true } })).text()
                 }
-                this.#scriptsPage[newUrl.split("?")[0]] = []
-                await new Promise(function (resolve){
-                    let js = document.createElement("script")
-                    js.src = script.src.replace(window.location.origin, "")
-                    js.onload = ()=>{resolve()}
-                    doc.replaceChild(js, script)
-                })
                 this.#scriptsPage[newUrl.split("?")[0]].push(script.src)
             }
+            js.innerHTML = this.#scripts[script.src].script
+            js.dataset.src = script.src
+            script.parentNode.replaceChild(js, script)
+            js.remove()
             this.#scripts[script.src].returnLoad = await this.#scripts[script.src].load()
         }
     }
@@ -111,8 +128,10 @@ class tp{
                             window.location.reload()
                         }
                         else{
-                            this.#page[response.url.split("?")[0]] = rep
-                            window.sessionStorage.setItem('page', JSON.stringify(this.#page))
+                            if(!response.headers.get("nosave")){
+                                this.#page[response.url.split("?")[0]] = rep
+                                window.sessionStorage.setItem('page', JSON.stringify(this.#page))
+                            }
                             resolve({html: rep, repUrl: response.url})
                         }
                     })

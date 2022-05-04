@@ -6,11 +6,17 @@ const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const upload = require(__dirname + "/localSources/upload.js")
 
-jside.httpAcces
-
 class jside{
     /**
-     * The constructor launch web server.
+     * @constructor jside class
+     * 
+     * @description Launch web server.
+     * 
+     * @example
+     * new jside(80, "Server is ready.")
+     * // Here the web server is launch on port 80 
+     * // and send "Server is ready." when he is ready.
+     * 
      * @param {number} port - This is the port used by web server.
      * @param {string} message - It's the message sends when server is ready.
      */
@@ -26,7 +32,7 @@ class jside{
         }
         this.constructor.index = this.constructor.index.replace("{script}", "")
         while(this.constructor.index.indexOf("{session}") >= 0){
-            this.constructor.index = this.constructor.index.replace("{session}", this.constructor.session)
+            this.constructor.index = this.constructor.index.replace("{session}", this.#session)
         }
 
         this.constructor.#app.use(cookieParser())
@@ -42,17 +48,11 @@ class jside{
             if(req.headers.jside && this.constructor.#modules[req.baseUrl[0]] && this.constructor.#modules[req.baseUrl[0]].httpAcces(req, res)){
                 this.constructor.#modules[req.baseUrl[0]][req.method](req, res)
             }
-            else if(req.headers.jside && !req.baseUrl[0]){
-                res.redirect("/" + this.constructor.defaultRedirect + req.url.substring(1))
-            }
-            else if(req.baseUrl[0] == "jside" && req.baseUrl[1] == "scripts" && req.method == "GET"){
-                this.constructor.#modules["jside"].GET(req, res)
-            }
-            else if((!req.headers.jside && this.constructor.#modules[req.baseUrl[0]]) || !req.baseUrl[0]){
+            else if(!req.headers.jside){
                 res.send(this.constructor.index)
             }
             else{
-                res.status(404).send()
+                res.status(404).send(" ")
             }
         })
 
@@ -64,7 +64,7 @@ class jside{
                     next()
                 }
                 else{
-                    next(new Error("Connection refusé."));
+                    next(new Error("Connection refuse."))
                 }
             })
         }
@@ -75,18 +75,34 @@ class jside{
 
     }
     /**
-     * This parameter should be assigned to a function because he called as this in constructor. 
-     * It allows you to apply additional parameters to the express module. 
-     * Ex : `jside.parametersApp = function(app){app.set('trust proxy', true)}`
+     * @static
+     * 
+     * @type {function(app)}
+     * 
+     * @description This parameter should be assigned to a function because he called as this in constructor. It allows you to apply additional parameters to the express module.
+     * 
+     * @example 
+     * jside.parametersApp = function(app){
+     *     app.set("trust proxy", true)
+     * }
+     * // Here the express option "trust proxy" is activate when the class is construct.
+     * 
      * @param {object} app - The arg "app" is the object of express module. He is always give when this function is call by constructor.
+     * 
+     * @default (app) => {}
      */
     static parametersApp = (app) => {}
     
     /**
-     * This function create a module.
-     * The name's module is a first value of url path. 
-     * Ex : `http://www.fesse.fr/callipyge/charnu`
-     * In this exemple, the called module is `callipyge`.
+     * @static
+     * 
+     * @description This function create a module. The module's is a first value of url path.
+     * 
+     * @example
+     * jside.createModule("callipyge")
+     * // If url use for request is `http://www.fesse.fr/callipyge/charnu`
+     * // so the called module is `callipyge`.
+     * 
      * @param {string} name - Module's name.
      */
     static createModule(name){
@@ -107,7 +123,7 @@ class jside{
                     this.modulesPOST[req.headers.action](req, res, this.json, (v)=>{res.send(v)})
                 }
                 else{
-                    res.status(404).send()
+                    res.status(404).send(" ")
                 }
             },
             httpAcces: function(req, res){
@@ -128,25 +144,80 @@ class jside{
     }
 
     /**
-     * `httpAccess` is used to give an authorization when a request is send to module.
+     * @static
+     * 
+     * @description `httpAccess` is used to give an authorization when a request is send to module.
+     * 
+     * @example
+     * jside.httpAcces("callipyge", function(req, res){
+     *     if(req.cookies.token == "superToken") return true
+     *     else return false
+     * })
+     * // Here if the token don't macth, the request is refuse.
+     * 
      * @param {string} name - Module's name.
-     * @param {function} cnd - The function in arg `cnd` it's called when server receive HTTP request, if she return `true`, the request accessed to module. this function is always call with 2 arg, `req` in first and `res` in second.
+     * @param {function(req, res)} cnd - The function in arg `cnd` it's called when server receive HTTP request, if she return `true`, the request access to module.
      */
     static httpAcces(name, cnd){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].httpAcces = cnd
     }
 
+    /**
+     * @static
+     * 
+     * @description `socketAcces` is used to give an authorization when a socket try connect to module.
+     * 
+     * @example
+     * jside.socketAcces("callipyge", function(auth, headers, next){
+     *     if(auth.version != "0.0.9"){
+     *         next(new Error("bad version."))
+     *         return false 
+     *     } 
+     *     else if(auth.token == "superToken") return true
+     *     else return false
+     * })
+     * // Here if the token don't macth, the connection is refuse.
+     * 
+     * @param {string} name - Module's name.
+     * @param {function(auth, headers, next)} cnd - The function in arg `cnd` it's called when a socket try connect to server, if she return `true`, the socket access to module.
+     */
     static socketAcces(name, cnd){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].socketAcces = cnd
     }
 
+    /**
+     * @static
+     * 
+     * @description `json` is used to create a dictionary for module. 
+     * 
+     * @example
+     * jside.json("callipyge", {fesse: "nice ass"})
+     * 
+     * @param {string} name - Module's name.
+     * @param {object} json - It JSON object. it is always given when a request is receive.
+     */
     static json(name, json){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].json = json
     }
 
+    /**
+     * @static
+     * 
+     * @description `addGet` is used to add an event of get request in a module.
+     * 
+     * @example
+     * jside.addGet("callipyge", "/charnu", function(req, res, json, send){
+     *     send("charnu", {name: json.fesse})
+     * })
+     * // Here the function `send(...)` is equal to `res.render(...)` of EJS module.
+     * 
+     * @param {string} name - Module's name.
+     * @param {string} path - Url path after module's name.
+     * @param {function(req, res, json, send)} fnc - The function is called when server receive get request.  
+     */
     static addGet(name, path, fnc){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         path = !path[0] || path[0] == "/"? path : "/" + path
@@ -155,17 +226,77 @@ class jside{
         this.#modules[name].modulesGET[name + path] = fnc
     }
 
+    /**
+     * @static
+     * 
+     * @description `addPost` is used to add an event of post request in a module.
+     * 
+     * @example
+     * // Client side:
+     * let rep = await tm("ohdamn", {boul: "round"})
+     * 
+     * // Server side:
+     * jside.addPost("callipyge", "ohdamn", function(req, res, json, send){
+     *     if(req.body.boul == "round") send({status: "s", info: "niiiiice"})
+     *     else send({status: "e", info: "badeeee"})
+     * })
+     * // Here the function `send(...)` is equal to `res.send(...)`.
+     * 
+     * @param {string} name - Module's name.
+     * @param {string} action - Post request name.
+     * @param {function(req, res, json, send)} fnc - The function is called when server receive post request.  
+     */
     static addPost(name, action, fnc){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         if(this.#modules[name].modulesPOST[action]) throw "module '" + name + "' already contains the action '" + action + "' for the method 'POST'"
         this.#modules[name].modulesPOST[action] = fnc
     }
 
+    /**
+     * @static
+     * 
+     * @description `socket` is used to declare socket event. 
+     * 
+     * @example
+     * jside.socket("callipyge", function(socket, io, next){
+     *     socket.emit("exe", (() => {
+     *         let temp = document.createElement("button")
+     *         temp.innerText = "click him"
+     *         document.body.appendChild(temp)
+     *     }).toString())
+     * })
+     * // The `exe` transmitter is used to send and execute code to the client.
+     * 
+     * @param {string} name - Module's name.
+     * @param {function(socket, io, next)} fnc - The function is called after connection is allowed.
+     */
     static socket(name, fnc){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].socket = fnc
     }
 
+    /**
+     * @static
+     * 
+     * @description `addComponent` is used to add dynamique component. 
+     * 
+     * @example
+     * jside.addComponent("callipyge", "pétard", `
+     * <div>
+     *     <button onclick="console.log('tropfort'); component.list["pétard"].refresh()"><%= ok %></button>
+     * </div>
+     * `, 
+     * function(req, res, json, send){
+     *     send({ok: "yasss"})
+     * })
+     * // `component.list["pétard"].refresh()` is used to refresh the component when button is clicked.
+     * // Here the function `send(...)` is equal to `res.send(...)`.
+     * 
+     * @param {string} name - Module's name.
+     * @param {string} nameComponent - Component's name.
+     * @param {string} html - String should contain html and EJS code.
+     * @param {function(req, res, json, send)} fnc - This function used to send information to client for make the component.
+     */
     static addComponent(name, nameComponent, html, fnc){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         if(this.#modules[name].component[nameComponent]) throw "module '" + name + "' already contains the conponent '" + nameComponent + "'"
@@ -175,6 +306,25 @@ class jside{
         }
     }
 
+    /**
+     * @static
+     * 
+     * @description `addUpload` is used to add an upload tunnel.
+     * 
+     * @example
+     * // Client side:
+     * new upload("idOfFileInput", "idOflabelInfo")
+     * 
+     * // Server side:
+     * jside.addUpload("callipyge", function(req, path){
+     *     if(req.cookies.token == "WoW") path("./in/your/ass/in/the/back/right")
+     *     else path("./here")
+     * })
+     * // Here `path(...)` is a function for give file destination.
+     * 
+     * @param {string} name - Module's name.
+     * @param {function(req, path)} fnc - The function is called when begin uploaded and is used for give destination path.
+     */
     static addUpload(name, fnc){
         if(!this.#modules[name]) throw "module '" + name + "' don't exist"
         this.#modules[name].upload = fnc
@@ -184,14 +334,31 @@ class jside{
 
     static #io = false
 
-    static session = String(Date.now())
+    #session = String(Date.now())
 
+    /**
+     * @static 
+     * 
+     * @description `index` contains the default html.
+     */
     static index = fs.readFileSync(__dirname + "/webSources/index.html", "utf-8")
 
-    static defaultRedirect = ""
-
+    /**
+     * @static 
+     * 
+     * @description `viewDir` contains the default dir of views.
+     * 
+     * @default "./views"
+     */
     static viewDir = "./views"
 
+    /**
+     * @static 
+     * 
+     * @description `publicDir` contains the default dir of views.
+     * 
+     * @default "./public"
+     */
     static publicDir = "./public"
 
     static #modules = {

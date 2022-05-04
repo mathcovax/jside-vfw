@@ -145,7 +145,7 @@ function s(id){
     return object
 }
 
-const fastH = {
+var fastH = {
     h: [],
     add: function(value){
         this.h.push(value)
@@ -154,3 +154,8 @@ const fastH = {
         }
     }
 }
+
+tp.on("unload", document.currentScript.dataset.src, function(e){
+    s = undefined
+    fastH = undefined
+})

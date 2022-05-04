@@ -1,6 +1,6 @@
 var divInfo = false
 
-function seeInfo(info){
+var seeInfo = function(info){
     if(divInfo){
         divInfo.innerText = info
     }
@@ -24,9 +24,15 @@ function seeInfo(info){
     
 }
 
-function deleteInfo(){
+var deleteInfo = function(){
     if(divInfo){
         divInfo.remove()
         divInfo = false
     }
 }
+
+tp.on("unload", document.currentScript.dataset.src, function(e){
+    delete divInfo
+    delete seeInfo
+    delete deleteInfo
+})

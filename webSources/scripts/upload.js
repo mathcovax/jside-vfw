@@ -1,4 +1,4 @@
-class upload{
+var upload = class{
     constructor(input, label){
         this.#input = document.getElementById(input)
         this.#label = document.getElementById(label)
@@ -301,7 +301,7 @@ class upload{
     #arg = window.location.href.replace(window.location.origin + "/", "").split("?")[1]? "?" + window.location.href.replace(window.location.origin + "/", "").split("?")[1] : ""
 }
 
-function arrayBufferToBase64(buffer) {
+var arrayBufferToBase64 = function(buffer) {
     let binary = '';
     let bytes = new Uint8Array(buffer);
     let len = bytes.byteLength;
@@ -310,3 +310,8 @@ function arrayBufferToBase64(buffer) {
     }
     return window.btoa(binary);
 }
+
+tp.on("unload", document.currentScript.dataset.src, function(e){
+    upload = undefined
+    arrayBufferToBase64 = undefined
+})
