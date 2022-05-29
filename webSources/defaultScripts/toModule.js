@@ -6,37 +6,44 @@ async function tm(action, body, label){
         if(document.getElementById(label)){
             document.getElementById(label).innerText = ""
         }
-        fetch(window.location.href, {
+        fetch(window.location.origin + "/" + loc.path[0] + "/" + action, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json', 
-                'action': action,
+                'Content-Type': 'application/json',
                 "jside": true
             },
             body: JSON.stringify(body)
         })
         .then( response => response.json() )
         .then( response => {
-            if(document.getElementById(label)){
-                switch(response.status){
-                    case "e":
+            switch(response.status){
+                case "e":
+                    if(document.getElementById(label) && response?.data?.info){
                         document.getElementById(label).style.color = "red"
-                        document.getElementById(label).innerText = response.info
-                        reject(response)
-                        break;
+                        document.getElementById(label).innerText = response.data.info
+                    }
+                    reject(response.data)
+                    break;
 
-                    case "s":
+                case "s":
+                    if(document.getElementById(label) && response?.data?.info){
                         document.getElementById(label).style.color = "green"
-                        document.getElementById(label).innerText = response.info
-                        resolve(response)
-                        break;  
-                        
-                }  
+                        document.getElementById(label).innerText = response.data.info
+                    }
+                    resolve(response.data)
+                    break;
+
+                case "r":
+                    window.location.href = response.url
+                    resolve(response)
+                    break; 
+                
+                default:
+                    resolve(response)
+                    break;
+                    
             }
-            else(
-                resolve(response)
-            )
         })
         .catch((error) => {
             console.error(error);

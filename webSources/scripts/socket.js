@@ -1,21 +1,24 @@
-tp.on("load", document.currentScript.dataset.src, async function(){
+tp.on("load", async function(){
     return await new Promise((resolve) => {
         function script(){
             delete socketIO
             const socket = io({
                 reconnection: false,
                 auth: {
-                    module: window.location.href.replace(window.location.origin + "/", "").split("?")[0].split("/")[0]
+                    module: loc.path[0],
+                    href: window.location.href
                 }
             })
             socket.on("connect_error", (err) => {
                 console.error(err);
             })
             
-            socket.on("exe", (script) => {
+            socket.on("exe", (script, fnc) => {
                 script = "(" + script + ")()"
                 eval(script)
+                fnc()
             })
+            pv = socket
             resolve({socket: socket})
         }
         
@@ -23,10 +26,11 @@ tp.on("load", document.currentScript.dataset.src, async function(){
         socketIO.src = "/socket.io/socket.io.js"
         socketIO.onload = script
         document.head.appendChild(socketIO)
+        socketIO.remove()
     })
 })
 
-tp.on("unload", document.currentScript.dataset.src, function(e){
+tp.on("unload", function(e){
     e.socket.removeAllListeners();
     if(e.socket)e.socket.disconnect()
 })

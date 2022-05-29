@@ -1,9 +1,10 @@
 class tp{
     constructor(newUrl, oldUrl=window.location.href){
-        
-        newUrl = newUrl.split("?")[1]? this.constructor.#rectiLink(newUrl) : this.constructor.#rectiLink(newUrl) + loc.urlArgs
+        newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.urlArgs
         if(this.constructor.#page[newUrl.split("?")[0]]){
-            this.constructor.#upDatePage(this.constructor.#page[newUrl.split("?")[0]], newUrl, oldUrl)
+            this.constructor.#httpAcces(newUrl).then(() => {
+                this.constructor.#upDatePage(this.constructor.#page[newUrl.split("?")[0]], newUrl, oldUrl)
+            })
         }
         else{
             this.constructor.#getPage(newUrl).then((obj) => {
@@ -17,106 +18,128 @@ class tp{
     }
 
     static async #upDatePage(rep, newUrl, oldUrl){
-        this.#unloadScripts(oldUrl)
+        this.#currentUrl = newUrl
         let newDoc = new DOMParser().parseFromString(rep, "text/html")
-        await this.#loadHead(newDoc.head)
-        if(loc.parse(newUrl).path[0] == loc.parse(oldUrl).path[0]){
-            this.#loadBody(newDoc.body)
-        }
-        else{
-            document.body.replaceWith(newDoc.body)
-        }
-        this.#loadHref()
-        await this.#unloadHead(newDoc.head)
-        window.history.pushState({}, null, newUrl)
-        await this.#loadScripts(document.body, newUrl)
-        if(component)component.launch()
+        loadDiv.replaceChildren(...newDoc.body.childNodes)
+        window.history.pushState(null, null, newUrl)
+        new loc()
+        this.#head(newDoc, newUrl)
+        await Promise.all([this.#loadScripts(newUrl), this.#loadCss(newUrl)])
+        this.#href()
+        this.#body()
+        this.#unloadScripts(newUrl, oldUrl)
+        this.#unloadCss(newUrl)
+        tc.launch()
     }
 
-    static async #loadHead(mhead){
-        for await(const ht of mhead.children){
-            if(ht.nodeName == "LINK" && ht.rel == "stylesheet" && document.head.innerHTML.indexOf(ht.outerHTML) == -1){
-                await new Promise((resolve) => {
-                    let temp = ht.cloneNode(true)
-                    temp.onload = resolve
-                    document.head.appendChild(temp)
-                })
-            }
-            else if(document.head.innerHTML.indexOf(ht.outerHTML) == -1)document.head.appendChild(ht.cloneNode(true))
+    static async #head(newDoc, newUrl){
+        document.title = newDoc.title? newDoc.title : document.title
+        for(const meta of document.head.querySelectorAll("meta:not([data-page='"+ newUrl +"'])")){
+            meta.remove()
+        }
+        for(const meta of newDoc.head.querySelectorAll("meta")){
+            meta.dataset.page = newUrl
+            document.head.append(meta)
         }
     }
 
-    static #loadBody(newBody){
-        let currantBody = document.body
-        let skip1 = 0
-        let skip2 = 0
-        let cb = currantBody.cloneNode(true)
-        let nb = newBody.cloneNode(true)
-        currantBody = currantBody.children
-        newBody = newBody.children
-        for(let index = 0; cb.children[index-skip1] || nb.children[index-skip2]; index++){
-            if(cb.children[index-skip1] && cb.children[index-skip1].nodeType == "SCRIPT"){skip2++; currantBody[index-skip1].remove()}
-            else if(nb.children[index-skip2] && nb.children[index-skip2].nodeType == "SCRIPT"){skip1++; document.body.appendChild(newBody[index-skip2].cloneNode(true))}
-            else if(cb.children[index-skip1]?.dataset?.name && nb.children[index-skip2]?.dataset?.name && currantBody[index-skip1].dataset.name == newBody[index-skip2].dataset.name) continue
-            else if(cb.children[index-skip1] && nb.children[index-skip2])currantBody[index-skip1].replaceWith(newBody[index-skip2].cloneNode(true))
-            else if(cb.children[index-skip1] && !nb.children[index-skip2])currantBody[index-skip1].remove()
-            else if(!cb.children[index-skip1] && nb.children[index-skip2]){document.body.appendChild(newBody[index-skip2].cloneNode(true))}
-        }
+    static async #loadCss(newUrl){
+        await forPromise(loadDiv.querySelectorAll("link[rel='stylesheet']"), (css) => {
+            return new Promise((resolve) => {
+                css.dataset.page = newUrl
+                cssDiv.appendChild(css)
+                css.onload = resolve
+                css.onerror = resolve
+            })
+        })
     }
 
-    static async #loadHref(){
-        for(const a of document.body.querySelectorAll("a")){
-            if(a.href){
-                a.onclick = (e) => {
-                    new tp(a.href.replace(window.location.origin, ""))
-                    return false
+    static async #loadScripts(newUrl){
+        if(!this.#pageVariable[newUrl.split("?")[0]]) this.#pageVariable[newUrl.split("?")[0]] = {}
+        pv = this.#pageVariable[newUrl.split("?")[0]]
+        if(!this.#scriptsPage[newUrl.split("?")[0]])this.#scriptsPage[newUrl.split("?")[0]] = {}
+        await forPromise(loadDiv.querySelectorAll("script"), (script) => {
+            return new Promise(async (resolve) => {
+                let s = document.createElement("script")
+                if(script.src){
+                    if(!this.#scriptsPage[newUrl.split("?")[0]][script.src]){
+                        this.#scriptsPage[newUrl.split("?")[0]][script.src] = {
+                            load: ()=>{},
+                            unload: ()=>{},
+                            returnLoad: {}
+                        }
+                    }
+                    await new Promise((resolve) => {
+                        s.src = script.src
+                        s.onload = resolve
+                        s.onerror = resolve
+                        script.replaceWith(s)
+                    })
+                    try{
+                        this.#scriptsPage[newUrl.split("?")[0]][script.src].returnLoad = await this.#scriptsPage[newUrl.split("?")[0]][script.src].load()
+                    }catch(e){}                    
                 }
-            }
-        }
-    }
-
-    static async #unloadHead(mhead){
-        for(const he of document.head.children){
-            if(mhead.innerHTML.indexOf(he.outerHTML) == -1)he.remove()
-        }
-    }
-
-    static async #loadScripts(doc, newUrl){
-        for(const script of document.body.querySelectorAll("script")){
-            let js = document.createElement("script")
-            if(!script.src){
-                js.innerHTML = script.innerHTML
-                script.parentNode.replaceChild(js, script)
-                js.remove()
-                continue
-            }
-            else if(!this.#scripts[script.src]){
-                this.#scriptsPage[newUrl.split("?")[0]] = []
-                this.#scripts[script.src] = {
-                    load: ()=>{},
-                    unload: ()=>{},
-                    returnLoad: {},
-                    script: await (await fetch(script.src, { method: "GET", headers: { "jside": true } })).text()
+                else{
+                    s.innerHTML = script.innerHTML
+                    script.replaceWith(s)
                 }
-                this.#scriptsPage[newUrl.split("?")[0]].push(script.src)
+                s.remove()
+                resolve()
+            })
+        })
+    }
+
+    static async #href(){
+        for(const a of loadDiv.querySelectorAll("a[href]")){
+            a.onclick = () => {
+                new tp(a.href.replace(window.location.origin, ""))
+                return false
             }
-            js.innerHTML = this.#scripts[script.src].script
-            js.dataset.src = script.src
-            script.parentNode.replaceChild(js, script)
-            js.remove()
-            this.#scripts[script.src].returnLoad = await this.#scripts[script.src].load()
         }
     }
 
-    static #unloadScripts(oldUrl){
-        if(this.#scriptsPage[oldUrl.split("?")[0]]){
-            for(const src of this.#scriptsPage[oldUrl.split("?")[0]]){
-                if(this.#scripts[src]){
-                    this.#scripts[src].unload(this.#scripts[src].returnLoad)
-                    this.#scripts[src].returnLoad = {}
-                }
+    static #body(){
+        for(let index = 0; bodyDiv.children[index] || loadDiv.children[0]; index++){
+            if(loadDiv.children[0].dataset.name && bodyDiv.children[index].dataset.name == loadDiv.children[0].dataset.name)loadDiv.children[0].remove()
+            else if(bodyDiv.children[index] && loadDiv.children[0]) bodyDiv.children[index].replaceWith(loadDiv.children[0])
+            else if (!bodyDiv.children[index] && loadDiv.children[0])bodyDiv.append(loadDiv.children[0])
+            else if (bodyDiv.children[index] && !loadDiv.children[0])bodyDiv.children[index].remove()
+        }
+    }
+
+    static async #unloadScripts(newUrl, oldUrl){
+        if(oldUrl != newUrl){
+            for(const src in this.#scriptsPage[oldUrl.split("?")[0]]){
+                this.#scriptsPage[oldUrl.split("?")[0]][src].unload(this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad)
+                this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad = {}
+            }
+            for(const v in this.#pageVariable[oldUrl.split("?")[0]]){
+                delete this.#pageVariable[oldUrl.split("?")[0]][v]
             }
         }
+    }
+
+    static async #unloadCss(newUrl){
+        for(const css of cssDiv.querySelectorAll("link:not([data-page='"+ newUrl +"'])")){
+            css.remove()
+        }
+    }
+
+    static async #httpAcces(newUrl){
+        return await new Promise((resolve, reject) => {
+            fetch(newUrl, { method: "GET", headers: { "jside": "acces" } }).then(response=>{
+                let link = response.url.split("?")[0]
+                link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
+                if(response.status == 200 && link == newUrl){
+                    resolve()
+                }
+                else{
+                    delete this.#page[newUrl.split("?")[0]]
+                    window.sessionStorage.setItem('page', JSON.stringify(this.#page))
+                    window.location.reload()
+                }
+            }).catch(this.error)
+        })
     }
 
     static async #getPage(newUrl){
@@ -124,15 +147,17 @@ class tp{
             fetch(newUrl, { method: "GET", headers: { "jside": true } }).then(response=>{
                 if(!response.headers.get('content-disposition')){
                     response.text().then((rep) => {
-                        if(rep == ""){
+                        if(rep == "reload"){
                             window.location.reload()
                         }
                         else{
+                            let link = response.url.split("?")[0]
+                            link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
                             if(!response.headers.get("nosave")){
-                                this.#page[response.url.split("?")[0]] = rep
+                                this.#page[link] = rep
                                 window.sessionStorage.setItem('page', JSON.stringify(this.#page))
                             }
-                            resolve({html: rep, repUrl: response.url})
+                            resolve({html: rep, repUrl: link})
                         }
                     })
                 }
@@ -155,16 +180,22 @@ class tp{
     
     static #scriptsPage = {}
 
-    static #scripts = {}
+    static #pageVariable = {}
 
-    static on(event, src, fnc){
-        this.#scripts[src][event] = fnc
+    static #currentUrl = ""
+
+    static on(event, fnc){
+        this.#scriptsPage[this.#currentUrl][document.currentScript.src][event] = fnc
     }
 }
 
-window.addEventListener("popstate", (e) => {
-    window.location.reload()
-})
+const bodyDiv = document.getElementById("bodyDiv")
+const loadDiv = document.getElementById("loadDiv")
+const cssDiv = document.getElementById("cssDiv")
+var pv = {}
 
-document.body.innerHTML = ""
+window.onpopstate = function () {
+    window.history.go(1);
+};
+
 new tp(window.location.href.replace(window.location.origin, ""))

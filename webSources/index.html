@@ -1,13 +1,33 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <script>
+    <script id="headScript">
         let session = window.sessionStorage.getItem("session")? window.sessionStorage.getItem("session") : "{session}"
         if(session != "{session}") window.sessionStorage.clear()
         window.sessionStorage.setItem("session", "{session}")
+        document.getElementById("headScript").remove()
     </script>
+    <title>{title}</title>
+    <link rel="icon" href="{icon}"/>
+    {css}
 </head>
-<body style="width: 100%; height: 100vh;">
-    {script}
+<body style="width: 100%; height: 100vh; margin: 0px;">
+    <div style="width: 100%; height: 100%;" id="bodyDiv">
+        {beforBody}
+    </div>
+
+    <div style="display: none; width: 100%; height: 100%;" id="loadDiv">
+
+    </div>
+
+    <div style="display: none;" id="cssDiv">
+    </div>
+
+    <div id="bodyScript">
+        {script}
+        <script>
+            document.getElementById("bodyScript").remove()
+        </script>
+    </div>
 </body>
 </html>
