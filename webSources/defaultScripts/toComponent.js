@@ -13,6 +13,7 @@ class tc{
         this.component.replaceWith(div)
         for(const script of div.querySelectorAll("script")){
             let s = document.createElement("script")
+            s.type = script.type
             s.innerHTML = script.innerHTML
             script.replaceWith(s)
             s.remove()

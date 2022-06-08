@@ -1,10 +1,10 @@
-function s(id){
-    fastH.add(id)
+pv.s = function(id){
+    pv.fastH.add(id)
     let object
     try{
-        object = !id? s.caller.arguments[0].target : typeof id === 'object'? id.target? id.target : !id.nodeName? s.caller.arguments[0].target.parentElement : id : Array.isArray(id)? Number.isInteger(id[0])? s.caller.arguments[0].target.parentElement.children[id[0]] : typeof id[0] === 'object'? id[0].target.parentElement.children[id[1]] : document.getElementById(id[0]).children[id[1]] : document.getElementById(id)
+        object = !id? pv.s.caller.arguments[0].target : typeof id === 'object'? id.target? id.target : !id.nodeName? pv.s.caller.arguments[0].target.parentElement : id : Array.isArray(id)? Number.isInteger(id[0])? pv.s.caller.arguments[0].target.parentElement.children[id[0]] : typeof id[0] === 'object'? id[0].target.parentElement.children[id[1]] : document.getElementById(id[0]).children[id[1]] : id.nodeName? id : document.getElementById(id)
     }catch{
-        throw fastH.h
+        throw pv.fastH.h
     }
     if(object.matechcide) return object
     
@@ -36,7 +36,7 @@ function s(id){
         for (let index = 1; index <= value; index++) {
             dad = dad.parentElement
         }
-        s(dad)
+        pv.s(dad)
         return dad
     }
     object.kid = (value) => {
@@ -47,18 +47,18 @@ function s(id){
                 tkid -= 1
                 kid = kid.children[tkid]
             }
-            s(kid)
+            pv.s(kid)
             return kid
         }
         value -= 1
-        s(object.children[value])
+        pv.s(object.children[value])
         return object.children[value]
     }
     object.ce = (value, ss, ff) => {
         let kid = document.createElement(value)
         kid.dataset.ss = ss? ss : ""
         kid.dataset.ff = ff? ff : ""
-        s(kid)
+        pv.s(kid)
         object.appendChild(kid)
         return kid
     }
@@ -145,7 +145,7 @@ function s(id){
     return object
 }
 
-var fastH = {
+pv.fastH = {
     h: [],
     add: function(value){
         this.h.push(value)
@@ -154,8 +154,3 @@ var fastH = {
         }
     }
 }
-
-tp.on("unload", document.currentScript.dataset.src, function(e){
-    s = undefined
-    fastH = undefined
-})

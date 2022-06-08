@@ -24,7 +24,7 @@ class tp{
         window.history.pushState(null, null, newUrl)
         new loc()
         this.#head(newDoc, newUrl)
-        await Promise.all([this.#loadScripts(newUrl), this.#loadCss(newUrl)])
+        await Promise.all([this.#loadScripts(newUrl, oldUrl), this.#loadCss(newUrl)])
         this.#href()
         this.#body()
         this.#unloadScripts(newUrl, oldUrl)
@@ -34,12 +34,12 @@ class tp{
 
     static async #head(newDoc, newUrl){
         document.title = newDoc.title? newDoc.title : document.title
-        for(const meta of document.head.querySelectorAll("meta:not([data-page='"+ newUrl +"'])")){
+        for(const meta of document.head.querySelectorAll(":not([data-page='"+ newUrl +"'])[data-page]")){
             meta.remove()
         }
-        for(const meta of newDoc.head.querySelectorAll("meta")){
-            meta.dataset.page = newUrl
-            document.head.append(meta)
+        for(const kid of newDoc.head.querySelectorAll(":not(title)")){
+            kid.dataset.page = newUrl
+            document.head.append(kid)
         }
     }
 
@@ -54,13 +54,18 @@ class tp{
         })
     }
 
-    static async #loadScripts(newUrl){
+    static async #loadScripts(newUrl, oldUrl){
         if(!this.#pageVariable[newUrl.split("?")[0]]) this.#pageVariable[newUrl.split("?")[0]] = {}
         pv = this.#pageVariable[newUrl.split("?")[0]]
         if(!this.#scriptsPage[newUrl.split("?")[0]])this.#scriptsPage[newUrl.split("?")[0]] = {}
-        await forPromise(loadDiv.querySelectorAll("script"), (script) => {
-            return new Promise(async (resolve) => {
+        if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
+            this.#moduleVariable[newUrl.split("?")[0]] = {}
+            mv = this.#moduleVariable[newUrl.split("?")[0]]
+        }
+        for await(const script of loadDiv.querySelectorAll("script")){
+            await new Promise(async (resolve) => {
                 let s = document.createElement("script")
+                s.type = script.type
                 if(script.src){
                     if(!this.#scriptsPage[newUrl.split("?")[0]][script.src]){
                         this.#scriptsPage[newUrl.split("?")[0]][script.src] = {
@@ -86,13 +91,15 @@ class tp{
                 s.remove()
                 resolve()
             })
-        })
+        }
     }
 
     static async #href(){
         for(const a of loadDiv.querySelectorAll("a[href]")){
-            a.onclick = () => {
+            let onclick = a.onclick? a.onclick.bind({}) : () => {}
+            a.onclick = (e) => {
                 new tp(a.href.replace(window.location.origin, ""))
+                onclick(e)
                 return false
             }
         }
@@ -100,7 +107,7 @@ class tp{
 
     static #body(){
         for(let index = 0; bodyDiv.children[index] || loadDiv.children[0]; index++){
-            if(loadDiv.children[0].dataset.name && bodyDiv.children[index].dataset.name == loadDiv.children[0].dataset.name)loadDiv.children[0].remove()
+            if(loadDiv.children[0]?.dataset?.name && bodyDiv.children[index]?.dataset?.name && bodyDiv.children[index].dataset.name == loadDiv.children[0].dataset.name)loadDiv.children[0].remove()
             else if(bodyDiv.children[index] && loadDiv.children[0]) bodyDiv.children[index].replaceWith(loadDiv.children[0])
             else if (!bodyDiv.children[index] && loadDiv.children[0])bodyDiv.append(loadDiv.children[0])
             else if (bodyDiv.children[index] && !loadDiv.children[0])bodyDiv.children[index].remove()
@@ -115,6 +122,11 @@ class tp{
             }
             for(const v in this.#pageVariable[oldUrl.split("?")[0]]){
                 delete this.#pageVariable[oldUrl.split("?")[0]][v]
+            }
+            if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
+                for(const v in this.#moduleVariable[oldUrl.split("?")[0]]){
+                    delete this.#moduleVariable[oldUrl.split("?")[0]][v]
+                }
             }
         }
     }
@@ -184,6 +196,8 @@ class tp{
 
     static #currentUrl = ""
 
+    static #moduleVariable = {}
+
     static on(event, fnc){
         this.#scriptsPage[this.#currentUrl][document.currentScript.src][event] = fnc
     }
@@ -193,6 +207,7 @@ const bodyDiv = document.getElementById("bodyDiv")
 const loadDiv = document.getElementById("loadDiv")
 const cssDiv = document.getElementById("cssDiv")
 var pv = {}
+var mv = {}
 
 window.onpopstate = function () {
     window.history.go(1);

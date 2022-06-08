@@ -1,7 +1,8 @@
-var upload = class{
-    constructor(input, label){
-        this.#input = document.getElementById(input)
-        this.#label = document.getElementById(label)
+pv.Upload = class{
+    constructor(name, input, label){
+        this.#name = name
+        this.#input = input
+        this.#label = label
         this.#input.addEventListener("change", () => {
             if(!this.#input.files[0]){
                 return
@@ -20,15 +21,16 @@ var upload = class{
         let sendingFile = 0
         let numFileSend = 0
         this.#start(this.#files)
-        let parameters = await this.#getParameters()
-        for(const params in parameters){
-            this[params] = parameters[params]
-        }
+        let parameters = await this.#post({action: "getParameters"})
+        this.#chunkSize = parameters.chunkSize
+        this.#cutSize = parameters.cutSize
+        this.#maxSendingFile = parameters.maxSendingFile
+        this.#maxSendingCut = parameters.maxSendingCut
         for await(const file of this.#files){
-            if(sendingFile >= this.maxSendingFile){
+            if(sendingFile >= this.#maxSendingFile){
                 await new Promise((resolve) => {
                     const interval = setInterval(async () => {
-                        if(sendingFile < this.maxSendingFile){
+                        if(sendingFile < this.#maxSendingFile){
                             clearInterval(interval)
                             sendingFile++
                             resolve()
@@ -48,7 +50,9 @@ var upload = class{
                 let sendingChunk = 0
                 let numberCut = 0
 
-                await this.#startPost({
+                await this.#post({
+                    action: "startUpLoad",
+                    nameUpload: this.#name,
                     name: file.name,
                     info: this.info, 
                     id: id,
@@ -56,10 +60,10 @@ var upload = class{
 
                 this.#startFileUpLoad(file, numFile)
 
-                for(let index = 0; index < byteFile; index += this.cutSize){
-                    const tempIndex = Math.ceil(index/this.cutSize)
+                for(let index = 0; index < byteFile; index += this.#cutSize){
+                    const tempIndex = Math.ceil(index/this.#cutSize)
 
-                    if(sendingChunk >= this.maxSendingCut){
+                    if(sendingChunk >= this.#maxSendingCut){
                         await new Promise((resolve) => {
                             const interval = setInterval(() => {
                                 if(numberCut == tempIndex){
@@ -84,14 +88,14 @@ var upload = class{
                     this.#startFileCut(file, numFile, byteSend)
                     
                     const reader = new FileReader();
-                    let slice = file.slice(index, index + this.cutSize);
+                    let slice = file.slice(index, index + this.#cutSize);
                     byteSend += slice.size
                     reader.readAsArrayBuffer(slice);
 
                     reader.onload = async () => {
-                        let result = arrayBufferToBase64(reader.result)
-                        for(let byts = 0; byts <= result.length; byts += this.chunkSize){
-                            let temp = result.slice(byts, byts + this.chunkSize)
+                        let result = pv.arrayBufferToBase64(reader.result)
+                        for(let byts = 0; byts <= result.length; byts += this.#chunkSize){
+                            let temp = result.slice(byts, byts + this.#chunkSize)
                             if(temp.length == 0) return
 
                             await this.#post({
@@ -117,7 +121,7 @@ var upload = class{
                 }
                 await new Promise((resolve) => {
                     const interval = setInterval(async () => {
-                        if(numberCut == Math.ceil(byteFile/this.cutSize)){
+                        if(numberCut == Math.ceil(byteFile/this.#cutSize)){
                             clearInterval(interval)
                             await this.#post({
                                 action: "endUpLoad",
@@ -140,71 +144,29 @@ var upload = class{
         }
     }
 
-    async #startPost(body){
-        return new Promise((resolve, reject) => {
-            fetch(this.#url.replace("/upload/", "/startUpload/") + this.#arg, {
-                method: "POST",
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    "jside": true
-                },
-                body: JSON.stringify(body)
-            })
-            .then( response => response.json() )
-            .then( response => {
-                if(this.#postResponse(response)){
-                    resolve(response)
-                }
-                else{
-                    reject(response)
-                }
-            })
-            .catch(this.#error)
-        })
-    }
-
     async #post(body){
         return new Promise((resolve, reject) => {
-            fetch(this.#url + this.#arg, {
+            fetch("/jside/upload", {
                 method: "POST",
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    "jside": true
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(body)
             })
-            .then( response => response.json() )
             .then( response => {
-                if(this.#postResponse(response)){
-                    resolve(response)
+                if(response.status == 403){
+                    reject("Forbidden")
                 }
                 else{
-                    reject(response)
-                }
-            })
-            .catch(this.#error)
-        })
-    }
-
-    async #getParameters(){
-        return new Promise((resolve, reject) => {
-            fetch(this.#url, {
-                method: "GET",
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    "jside": true
-                }
-            })
-            .then( response => response.json() )
-            .then( response => {
-                if(this.#postResponse(response)){
-                    resolve(response)
-                }
-                else{
-                    reject(response)
+                    response.json().then( response => {
+                        if(this.#postResponse(response)){
+                            resolve(response)
+                        }
+                        else{
+                            reject(response)
+                        }
+                    })
                 }
             })
             .catch(this.#error)
@@ -250,15 +212,17 @@ var upload = class{
         }
     }
 
-    maxSendingFile = 1
-
     info = {}
 
-    cutSize = 500000
+    #name = ""
 
-    chunkSize = 100000
+    #maxSendingFile = 1
 
-    maxSendingCut = 5
+    #cutSize = 500000
+
+    #chunkSize = 100000
+
+    #maxSendingCut = 5
 
     stop(){ this.#status == false }
 
@@ -301,7 +265,7 @@ var upload = class{
     #arg = window.location.href.replace(window.location.origin + "/", "").split("?")[1]? "?" + window.location.href.replace(window.location.origin + "/", "").split("?")[1] : ""
 }
 
-var arrayBufferToBase64 = function(buffer) {
+pv.arrayBufferToBase64 = function(buffer) {
     let binary = '';
     let bytes = new Uint8Array(buffer);
     let len = bytes.byteLength;
@@ -310,8 +274,3 @@ var arrayBufferToBase64 = function(buffer) {
     }
     return window.btoa(binary);
 }
-
-tp.on("unload", document.currentScript.dataset.src, function(e){
-    upload = undefined
-    arrayBufferToBase64 = undefined
-})

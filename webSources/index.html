@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{lang}">
 <head>
     <script id="headScript">
         let session = window.sessionStorage.getItem("session")? window.sessionStorage.getItem("session") : "{session}"
@@ -8,11 +8,14 @@
         document.getElementById("headScript").remove()
     </script>
     <title>{title}</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    {head}
     <link rel="icon" href="{icon}"/>
     {css}
 </head>
-<body style="width: 100%; height: 100vh; margin: 0px;">
-    <div style="width: 100%; height: 100%;" id="bodyDiv">
+<body style="width: 100%; height: 100%; margin: 0px;">
+    <div style="width: 100%; height: 100%; overflow: hidden; position: absolute;" id="bodyDiv">
         {beforBody}
     </div>
 

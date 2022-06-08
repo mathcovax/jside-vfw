@@ -2,9 +2,7 @@ window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileS
 window.directoryEntry = window.directoryEntry || window.webkitDirectoryEntry;
 window.resolveLocalFileSystemURL = window.resolveLocalFileSystemURL ||  window.webkitResolveLocalFileSystemURL;
 
-let fileSystem
-
-var launchFileSystem = async (size=1000000000) => {
+pv.launchFileSystem = async (size=1000000000) => {
     return new Promise((resolve) => {
         navigator.webkitPersistentStorage.requestQuota(size, (rep) => {
             if(rep == 0){
@@ -13,100 +11,100 @@ var launchFileSystem = async (size=1000000000) => {
             else{
                 window.requestFileSystem(window.TEMPORARY, size, (fs) => {
                     fs.root.getDirectory("temp", { create: true }, (directoryEntry) => {
-                        fileSystem = directoryEntry
+                        pv.fileSystem = directoryEntry
                         resolve(true)
-                    }, errorHandler);
+                    }, pv.errorHandler);
                 });
             }
-        }, errorHandler)
+        }, pv.errorHandler)
     })
 }
 
 
-var loopDir = async (path) => {
+pv.loopDir = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
+        pv.fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             let temp = directoryEntry.createReader()
             temp.readEntries((rep) => {
                 resolve(rep)
-            }, errorHandler)
-        }, errorHandler)
+            }, pv.errorHandler)
+        }, pv.errorHandler)
     })
 }
 
-var removeDir = async (path) => {
+pv.removeDir = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
+        pv.fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             directoryEntry.removeRecursively(() => {
                 resolve()
-            }, errorHandler)
-        }, errorHandler)
+            }, pv.errorHandler)
+        }, pv.errorHandler)
     })
 }
 
-var removeFile = async (path) => {
+pv.removeFile = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getFile(path, { create: true }, (file) => {
+        pv.fileSystem.getFile(path, { create: true }, (file) => {
             file.remove(() => {
                 resolve()
-            }, errorHandler)
+            }, pv.errorHandler)
         })
     })
 }
 
-var createDir = (path) => {
+pv.createDir = (path) => {
     return new Promise((resolve) => {
-        fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
+        pv.fileSystem.getDirectory(path, { create: true }, (directoryEntry) => {
             resolve()
-        }, errorHandler)
+        }, pv.errorHandler)
     })
 }
 
-var writeFile = async (path, base64) => {
+pv.writeFile = async (path, base64) => {
     if(await fileExist(path)){
         await removeFile(path)
     }
     return new Promise((resolve) => {
-        fileSystem.getFile(path, { create: true }, (file) => {
+        pv.fileSystem.getFile(path, { create: true }, (file) => {
             file.createWriter((content) => {
-                content.write(base64toBlob(base64));
+                content.write(pv.base64toBlob(base64));
                 resolve()
-            }, errorHandler);
-        }, errorHandler)
+            }, pv.errorHandler);
+        }, pv.errorHandler)
     })
 }
 
-var appendFile = async (path, base64) => {
+pv.appendFile = async (path, base64) => {
     return new Promise((resolve) => {
-        fileSystem.getFile(path, { create: true }, (file) => {
+        pv.fileSystem.getFile(path, { create: true }, (file) => {
             file.createWriter((content) => {
                 content.seek(content.length)
-                content.write(base64toBlob(base64));
+                content.write(pv.base64toBlob(base64));
                 resolve()
-            }, errorHandler);
-        }, errorHandler)
+            }, pv.errorHandler);
+        }, pv.errorHandler)
     })
 }
 
-var folderExist = async (path) => {
+pv.folderExist = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getDirectory(path, {}, () => {
+        pv.fileSystem.getDirectory(path, {}, () => {
             resolve(true)
         }, () => resolve(false))
     })
 }
 
-var fileExist = async (path) => {
+pv.fileExist = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getFile(path, {}, () => {
+        pv.fileSystem.getFile(path, {}, () => {
             resolve(true)
         }, () => resolve(false))
     })
 }
 
-var readFile = async (path) => {
+pv.readFile = async (path) => {
     return new Promise((resolve) => {
-        fileSystem.getFile(path, {}, (fileEntry) => {
+        pv.fileSystem.getFile(path, {}, (fileEntry) => {
             fileEntry.file((file) => {
                 const reader = new FileReader();
                 reader.addEventListener("loadend", () => {
@@ -114,11 +112,11 @@ var readFile = async (path) => {
                 });
                 reader.readAsText(file);
             })
-        }, errorHandler)
+        }, pv.errorHandler)
     })
 }
 
-var base64toBlob = function(base64Data, contentType) {
+pv.base64toBlob = function(base64Data, contentType) {
     contentType = contentType || '';
     var sliceSize = 1024;
     var byteCharacters = atob(base64Data);
@@ -139,22 +137,6 @@ var base64toBlob = function(base64Data, contentType) {
     return new Blob(byteArrays, { type: contentType });
 }
 
-var errorHandler = function(e) {
+pv.errorHandler = function(e) {
     console.error(e);
 }
-
-tp.on("unload", document.currentScript.dataset.src, function(e){
-    errorHandler = undefined
-    base64toBlob = undefined
-    readFile = undefined
-    fileExist = undefined
-    folderExist = undefined
-    appendFile = undefined
-    writeFile = undefined
-    createDir = undefined
-    removeFile = undefined
-    removeDir = undefined
-    loopDir = undefined
-    launchFileSystem = undefined
-    fileSystem = undefined
-})

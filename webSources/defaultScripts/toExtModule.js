@@ -1,4 +1,4 @@
-async function tm(action, body, label){
+async function tem(action, body={}, label){
     if(label === undefined){
         label = "labelInfo"
     }
@@ -6,12 +6,11 @@ async function tm(action, body, label){
         if(document.getElementById(label)){
             document.getElementById(label).innerText = ""
         }
-        fetch(window.location.origin + "/" + loc.path[0] + "/" + action, {
+        fetch(window.location.origin + "/jside/extPost/" + action, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                "jside": true
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         })

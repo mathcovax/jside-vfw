@@ -9,5 +9,5 @@ export {
     Module,
     Component,
     Page,
-    MultiPage
+    MultiPage,
 }
