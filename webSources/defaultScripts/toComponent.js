@@ -1,8 +1,20 @@
 class tc{
     constructor(component){
-        this.name = component.dataset.c
-        this.component = component
-        this.refresh()
+        if(component.dataset.tmc){
+            this.name = component.dataset.tmc
+            this.component = component
+            delete this.component.dataset.tmc
+            this.component.dataset.name = this.name
+            this.component.gd = async (json) => {return await this.getData(json)}
+        }
+        else {
+            this.name = component.dataset.c
+            this.component = component
+            this.component.gd = this.getData
+            this.component.rfh = this.refresh
+            this.refresh()
+        }
+        
     }
 
     async refresh(){
@@ -19,6 +31,8 @@ class tc{
             s.remove()
         }
         this.component = div
+        this.component.gd = this.getData
+        this.component.refresh = this.refresh
     }
 
     async getData(json={}){
@@ -47,16 +61,7 @@ class tc{
         })
     }
 
-    static async getData(json={}){
-        do {
-            var dad = document.currentScript.parentNode
-        } while (!dad.dataset.c && dad.nodeType != "BODY");
-        if(dad.nodeType == "BODY") throw "Error parent component."
-        return await this.#getData(dad.dataset.c, json)
-
-    }
-
-    static async #getData(name, body){
+    static async #getData(name, body={}){
         return await new Promise((resolve, reject) => {
             fetch(window.location.origin + "/" + loc.path[0] + "/" + name, {
                 method: "POST",
@@ -72,11 +77,14 @@ class tc{
 
     static launch(){
         for(const component in this.#listComponent){
-            this.#listComponent[component].html.remove()
+            this.#listComponent[component].component.remove()
             delete this.#listComponent[component]
         }
         for(const component of bodyDiv.querySelectorAll("div[data-c]")){
-            this.#listComponent[component.dataset.component] = new tc(component)
+            this.#listComponent[component.dataset.c] = new tc(component)
+        }
+        for(const component of bodyDiv.querySelectorAll("div[data-tmc]")){
+            this.#listComponent[component.dataset.mc] = new tc(component)
         }
     }
 

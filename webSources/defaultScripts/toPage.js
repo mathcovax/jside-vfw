@@ -19,11 +19,13 @@ class tp{
 
     static async #upDatePage(rep, newUrl, oldUrl){
         this.#currentUrl = newUrl
+        newUrl = newUrl.split("?")[0]
+        oldUrl = oldUrl.split("?")[0]
         let newDoc = new DOMParser().parseFromString(rep, "text/html")
         loadDiv.replaceChildren(...newDoc.body.childNodes)
-        window.history.pushState(null, null, newUrl)
+        window.history.pushState(null, null, this.#currentUrl)
         new loc()
-        this.#head(newDoc, newUrl)
+        this.#head(newDoc, newUrl, oldUrl)
         await Promise.all([this.#loadScripts(newUrl, oldUrl), this.#loadCss(newUrl)])
         this.#href()
         this.#body()
@@ -32,7 +34,8 @@ class tp{
         tc.launch()
     }
 
-    static async #head(newDoc, newUrl){
+    static async #head(newDoc, newUrl, oldUrl){
+        if(newUrl == oldUrl) return
         document.title = newDoc.title? newDoc.title : document.title
         for(const meta of document.head.querySelectorAll(":not([data-page='"+ newUrl +"'])[data-page]")){
             meta.remove()
@@ -115,18 +118,17 @@ class tp{
     }
 
     static async #unloadScripts(newUrl, oldUrl){
-        if(oldUrl != newUrl){
-            for(const src in this.#scriptsPage[oldUrl.split("?")[0]]){
-                this.#scriptsPage[oldUrl.split("?")[0]][src].unload(this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad)
-                this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad = {}
-            }
-            for(const v in this.#pageVariable[oldUrl.split("?")[0]]){
-                delete this.#pageVariable[oldUrl.split("?")[0]][v]
-            }
-            if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
-                for(const v in this.#moduleVariable[oldUrl.split("?")[0]]){
-                    delete this.#moduleVariable[oldUrl.split("?")[0]][v]
-                }
+        if(oldUrl == newUrl) return
+        for(const src in this.#scriptsPage[oldUrl.split("?")[0]]){
+            this.#scriptsPage[oldUrl.split("?")[0]][src].unload(this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad)
+            this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad = {}
+        }
+        for(const v in this.#pageVariable[oldUrl.split("?")[0]]){
+            delete this.#pageVariable[oldUrl.split("?")[0]][v]
+        }
+        if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
+            for(const v in this.#moduleVariable[oldUrl.split("?")[0]]){
+                delete this.#moduleVariable[oldUrl.split("?")[0]][v]
             }
         }
     }
@@ -163,13 +165,13 @@ class tp{
                             window.location.reload()
                         }
                         else{
-                            let link = response.url.split("?")[0]
-                            link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
                             if(!response.headers.get("nosave")){
+                                let link = response.url.split("?")[0]
+                                link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
                                 this.#page[link] = rep
                                 window.sessionStorage.setItem('page', JSON.stringify(this.#page))
                             }
-                            resolve({html: rep, repUrl: link})
+                            resolve({html: rep, repUrl: response.url})
                         }
                     })
                 }

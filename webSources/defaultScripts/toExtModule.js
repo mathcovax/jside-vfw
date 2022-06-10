@@ -6,7 +6,7 @@ async function tem(action, body={}, label){
         if(document.getElementById(label)){
             document.getElementById(label).innerText = ""
         }
-        fetch(window.location.origin + "/jside/extPost/" + action, {
+        fetch(window.location.origin + "/jside/extPost/" + action + loc.urlArgs, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',

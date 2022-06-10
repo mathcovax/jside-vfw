@@ -6,7 +6,7 @@ async function tm(action, body, label){
         if(document.getElementById(label)){
             document.getElementById(label).innerText = ""
         }
-        fetch(window.location.origin + "/" + loc.path[0] + "/" + action, {
+        fetch(window.location.origin + "/" + loc.path[0] + "/" + action + loc.urlArgs, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
