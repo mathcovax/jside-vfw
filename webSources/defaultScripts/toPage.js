@@ -1,5 +1,5 @@
 class tp{
-    constructor(newUrl, oldUrl=window.location.href){
+    constructor(newUrl, oldUrl="?"){
         newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.urlArgs
         if(this.constructor.#page[newUrl.split("?")[0]]){
             this.constructor.#httpAcces(newUrl).then(() => {
@@ -101,7 +101,7 @@ class tp{
         for(const a of loadDiv.querySelectorAll("a[href]")){
             let onclick = a.onclick? a.onclick.bind({}) : () => {}
             a.onclick = (e) => {
-                new tp(a.href.replace(window.location.origin, ""))
+                new tp(a.href.replace(window.location.origin, ""), window.location.href)
                 onclick(e)
                 return false
             }
@@ -210,9 +210,5 @@ const loadDiv = document.getElementById("loadDiv")
 const cssDiv = document.getElementById("cssDiv")
 var pv = {}
 var mv = {}
-
-window.onpopstate = function () {
-    window.history.go(1);
-};
 
 new tp(window.location.href.replace(window.location.origin, ""))

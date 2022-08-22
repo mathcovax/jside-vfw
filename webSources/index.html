@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="{lang}">
 <head>
-    <script id="headScript">
+    <script>
         let session = window.sessionStorage.getItem("session")? window.sessionStorage.getItem("session") : "{session}"
         if(session != "{session}") window.sessionStorage.clear()
         window.sessionStorage.setItem("session", "{session}")
-        document.getElementById("headScript").remove()
+        window.onload = function() {
+            setTimeout(() => {
+                let js = document.createElement("script")
+                js.innerHTML = "window.onpageshow = function() { window.location.reload() }"
+                document.head.prepend(js)
+            }, 10);
+        }
+        document.currentScript.remove()
     </script>
     <title>{title}</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
