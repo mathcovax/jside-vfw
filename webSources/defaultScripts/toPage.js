@@ -26,9 +26,10 @@ class tp{
         window.history.pushState(null, null, this.#currentUrl)
         new loc()
         this.#head(newDoc, newUrl, oldUrl)
-        await Promise.all([this.#loadScripts(newUrl, oldUrl), this.#loadCss(newUrl)])
-        this.#href()
+        await this.#loadCss(newUrl)
         this.#body()
+        await this.#loadScripts(newUrl, oldUrl)
+        this.#href()
         this.#unloadScripts(newUrl, oldUrl)
         this.#unloadCss(newUrl)
         tc.launch()
@@ -65,7 +66,7 @@ class tp{
             this.#moduleVariable[newUrl.split("?")[0]] = {}
             mv = this.#moduleVariable[newUrl.split("?")[0]]
         }
-        for await(const script of loadDiv.querySelectorAll("script")){
+        for await(const script of bodyDiv.querySelectorAll("script")){
             await new Promise(async (resolve) => {
                 let s = document.createElement("script")
                 s.type = script.type
@@ -97,8 +98,8 @@ class tp{
         }
     }
 
-    static async #href(){
-        for(const a of loadDiv.querySelectorAll("a[href]")){
+    static #href(){
+        for(const a of bodyDiv.querySelectorAll("a[href]")){
             let onclick = a.onclick? a.onclick.bind({}) : () => {}
             a.onclick = (e) => {
                 new tp(a.href.replace(window.location.origin, ""), window.location.href)
