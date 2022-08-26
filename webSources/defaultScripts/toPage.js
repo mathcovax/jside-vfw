@@ -101,6 +101,8 @@ class tp{
     static #href(){
         for(const a of bodyDiv.querySelectorAll("a[href]")){
             let onclick = a.onclick? a.onclick.bind({}) : () => {}
+            if(a.dataset.already) continue
+            a.dataset.already = "true"
             a.onclick = (e) => {
                 new tp(a.href.replace(window.location.origin, ""), window.location.href)
                 onclick(e)
