@@ -1,4 +1,4 @@
-async function tm(action, body, label, tempText=""){
+async function tm(action, body={}, label, tempText=""){
     if(label === undefined){
         label = "labelInfo"
     }

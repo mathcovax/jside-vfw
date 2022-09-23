@@ -1,10 +1,11 @@
-async function tem(action, body={}, label){
+async function tem(action, body={}, label, tempText=""){
     if(label === undefined){
         label = "labelInfo"
     }
     return await new Promise((resolve, reject) => {
         if(document.getElementById(label)){
-            document.getElementById(label).innerText = ""
+            document.getElementById(label).style.color = ""
+            document.getElementById(label).innerText = tempText
         }
         fetch(window.location.origin + "/jside/extPost/" + action + loc.urlArgs, {
             method: "POST",
@@ -46,6 +47,7 @@ async function tem(action, body={}, label){
         })
         .catch((error) => {
             console.error(error);
+            reject(error)
         })
     })
 }

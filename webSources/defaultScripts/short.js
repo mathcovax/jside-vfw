@@ -31,7 +31,7 @@ class loc{
             args: (function(){
                 if(url.indexOf("?") > -1){
                     let temp = {}
-                    for(const arg of window.location.href.split("?")[1].split("&")){
+                    for(const arg of url.split("?")[1].split("&")){
                         temp[arg.split("=")[0]] = arg.split("=")[1]
                     }
                     return temp

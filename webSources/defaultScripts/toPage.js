@@ -1,6 +1,7 @@
 class tp{
-    constructor(newUrl, oldUrl="?"){
-        newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.urlArgs
+    constructor(newUrl, oldUrl=window.location.href){
+        newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.parse(newUrl).urlArgs
+        oldUrl = oldUrl === "?"? oldUrl : this.constructor.#rectiLink(loc.parse(oldUrl).urlPath) + loc.parse(oldUrl).urlArgs
         if(this.constructor.#page[newUrl.split("?")[0]]){
             this.constructor.#httpAcces(newUrl).then(() => {
                 this.constructor.#upDatePage(this.constructor.#page[newUrl.split("?")[0]], newUrl, oldUrl)
@@ -18,6 +19,7 @@ class tp{
     }
 
     static async #upDatePage(rep, newUrl, oldUrl){
+        if(oldUrl == newUrl)return
         this.#currentUrl = newUrl
         newUrl = newUrl.split("?")[0]
         oldUrl = oldUrl.split("?")[0]
@@ -32,7 +34,6 @@ class tp{
         this.#href()
         this.#unloadScripts(newUrl, oldUrl)
         this.#unloadCss(newUrl)
-        tc.launch()
     }
 
     static async #head(newDoc, newUrl, oldUrl){
@@ -63,8 +64,8 @@ class tp{
         pv = this.#pageVariable[newUrl.split("?")[0]]
         if(!this.#scriptsPage[newUrl.split("?")[0]])this.#scriptsPage[newUrl.split("?")[0]] = {}
         if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
-            this.#moduleVariable[newUrl.split("?")[0]] = {}
-            mv = this.#moduleVariable[newUrl.split("?")[0]]
+            this.#moduleVariable[loc.parse(newUrl).path[0]] = {}
+            mv = this.#moduleVariable[loc.parse(newUrl).path[0]]
         }
         for await(const script of bodyDiv.querySelectorAll("script")){
             await new Promise(async (resolve) => {
@@ -74,25 +75,50 @@ class tp{
                     if(!this.#scriptsPage[newUrl.split("?")[0]][script.src]){
                         this.#scriptsPage[newUrl.split("?")[0]][script.src] = {
                             load: ()=>{},
+                            changeModule: ()=>{},
                             unload: ()=>{},
                             returnLoad: {}
                         }
+                        await new Promise((resolve) => {
+                            s.dataset.scriptId = script.src
+                            s.src = script.src
+                            s.onload = resolve
+                            s.onerror = resolve
+                            script.replaceWith(s)
+                        })
                     }
-                    await new Promise((resolve) => {
+                    else{
+                        script.dataset.scriptId = script.src
+                        script.src = script.src
                         s.src = script.src
-                        s.onload = resolve
-                        s.onerror = resolve
-                        script.replaceWith(s)
-                    })
-                    try{
-                        this.#scriptsPage[newUrl.split("?")[0]][script.src].returnLoad = await this.#scriptsPage[newUrl.split("?")[0]][script.src].load()
-                    }catch(e){}                    
+                        s.dataset.scriptId = script.src
+                    }
+                                       
                 }
                 else{
-                    s.innerHTML = script.innerHTML
-                    script.replaceWith(s)
+                    if(!script.dataset.scriptId?.startsWith("local-")){
+                        s.dataset.scriptId = "local-" + (Math.random() + 1).toString(36).substring(7);
+                        this.#scriptsPage[newUrl.split("?")[0]][s.dataset.scriptId] = {
+                            load: ()=>{},
+                            changeModule: ()=>{},
+                            unload: ()=>{},
+                            returnLoad: {}
+                        }
+                        s.innerHTML = script.innerHTML
+                        script.replaceWith(s)
+                    }
+                    else if(!this.#scriptsPage[newUrl.split("?")[0]][script.dataset.scriptId]){
+                        this.#scriptsPage[newUrl.split("?")[0]][script.dataset.scriptId] = this.#scriptsPage[oldUrl.split("?")[0]][script.dataset.scriptId]
+                        s.dataset.scriptId = script.dataset.scriptId
+                    }
+                    else{
+                        s.dataset.scriptId = script.dataset.scriptId
+                    }
                 }
-                s.remove()
+                try{
+                    this.#scriptsPage[newUrl.split("?")[0]][s.dataset.scriptId].returnLoad = await this.#scriptsPage[newUrl.split("?")[0]][s.dataset.scriptId].load()
+                }catch(e){console.log(e);}
+
                 resolve()
             })
         }
@@ -104,7 +130,7 @@ class tp{
             if(a.dataset.already) continue
             a.dataset.already = "true"
             a.onclick = (e) => {
-                new tp(a.href.replace(window.location.origin, ""), window.location.href)
+                new tp(a.href.replace(window.location.origin, ""))
                 onclick(e)
                 return false
             }
@@ -113,25 +139,29 @@ class tp{
 
     static #body(){
         for(let index = 0; bodyDiv.children[index] || loadDiv.children[0]; index++){
-            if(loadDiv.children[0]?.dataset?.name && bodyDiv.children[index]?.dataset?.name && bodyDiv.children[index].dataset.name == loadDiv.children[0].dataset.name)loadDiv.children[0].remove()
-            else if(bodyDiv.children[index] && loadDiv.children[0]) bodyDiv.children[index].replaceWith(loadDiv.children[0])
+            if(loadDiv.children[0]?.dataset?.c && bodyDiv.children[index]?.dataset?.c && bodyDiv.children[index].dataset.c == loadDiv.children[0].dataset.c)loadDiv.children[0].remove()
+            else if(bodyDiv.children[index] && loadDiv.children[0])bodyDiv.children[index].replaceWith(loadDiv.children[0])
             else if (!bodyDiv.children[index] && loadDiv.children[0])bodyDiv.append(loadDiv.children[0])
-            else if (bodyDiv.children[index] && !loadDiv.children[0])bodyDiv.children[index].remove()
+            else if (bodyDiv.children[index] && !loadDiv.children[0]){
+                bodyDiv.children[index].remove()
+                index--
+            }
         }
     }
 
     static async #unloadScripts(newUrl, oldUrl){
-        if(oldUrl == newUrl) return
-        for(const src in this.#scriptsPage[oldUrl.split("?")[0]]){
-            this.#scriptsPage[oldUrl.split("?")[0]][src].unload(this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad)
-            this.#scriptsPage[oldUrl.split("?")[0]][src].returnLoad = {}
+        for(const scriptId in this.#scriptsPage[oldUrl.split("?")[0]]){
+            await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].unload(this.#pageVariable[oldUrl.split("?")[0]], this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad)
+            if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0])await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].changeModule(this.#moduleVariable[loc.parse(oldUrl).path[0]])
+            this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad = {}
+            if(scriptId.startsWith("local-")) delete this.#scriptsPage[oldUrl.split("?")[0]][scriptId]
         }
         for(const v in this.#pageVariable[oldUrl.split("?")[0]]){
             delete this.#pageVariable[oldUrl.split("?")[0]][v]
         }
         if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
-            for(const v in this.#moduleVariable[oldUrl.split("?")[0]]){
-                delete this.#moduleVariable[oldUrl.split("?")[0]][v]
+            for(const v in this.#moduleVariable[loc.parse(oldUrl).path[0]]){
+                delete this.#moduleVariable[loc.parse(oldUrl).path[0]][v]
             }
         }
     }
@@ -147,7 +177,7 @@ class tp{
             fetch(newUrl, { method: "GET", headers: { "jside": "acces" } }).then(response=>{
                 let link = response.url.split("?")[0]
                 link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
-                if(response.status == 200 && link == newUrl){
+                if(response.status == 200 && link == newUrl.split("?")[0]){
                     resolve()
                 }
                 else{
@@ -204,7 +234,7 @@ class tp{
     static #moduleVariable = {}
 
     static on(event, fnc){
-        this.#scriptsPage[this.#currentUrl][document.currentScript.src][event] = fnc
+        this.#scriptsPage[this.#currentUrl][document.currentScript.dataset.scriptId][event] = fnc
     }
 }
 
@@ -214,4 +244,4 @@ const cssDiv = document.getElementById("cssDiv")
 var pv = {}
 var mv = {}
 
-new tp(window.location.href.replace(window.location.origin, ""))
+new tp(window.location.href.replace(window.location.origin, ""), "?")
