@@ -1,5 +1,12 @@
 class tp{
     constructor(newUrl, oldUrl=window.location.href){
+        if(this.constructor.#status === true) return
+        this.constructor.#status = true
+
+        this.constructor.#timeoutLoading = setTimeout(() => {
+            this.constructor.elementLoadingOverlay.style.display = "block"
+        }, this.constructor.timeoutLoadingValue);
+
         newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.parse(newUrl).urlArgs
         oldUrl = oldUrl === "?"? oldUrl : this.constructor.#rectiLink(loc.parse(oldUrl).urlPath) + loc.parse(oldUrl).urlArgs
         if(this.constructor.#page[newUrl.split("?")[0]]){
@@ -19,44 +26,86 @@ class tp{
     }
 
     static async #upDatePage(rep, newUrl, oldUrl){
-        if(oldUrl == newUrl)return
+        if(oldUrl == newUrl){
+            window.location.reload()
+            this.#status = false
+            return
+        }
         this.#currentUrl = newUrl
         newUrl = newUrl.split("?")[0]
         oldUrl = oldUrl.split("?")[0]
-        let newDoc = new DOMParser().parseFromString(rep, "text/html")
-        loadDiv.replaceChildren(...newDoc.body.childNodes)
+        this.#newPage = new DOMParser().parseFromString(rep, "text/html")
         window.history.pushState(null, null, this.#currentUrl)
-        new loc()
-        this.#head(newDoc, newUrl, oldUrl)
+        document.title = this.#newPage.title || document.title
+        new loc(newUrl, oldUrl)
+        this.#rectiNewPage()
+        this.#head(newUrl, oldUrl)
         await this.#loadCss(newUrl)
         this.#body()
         await this.#loadScripts(newUrl, oldUrl)
-        this.#href()
         this.#unloadScripts(newUrl, oldUrl)
         this.#unloadCss(newUrl)
+        clearTimeout(this.#timeoutLoading)
+        this.elementLoadingOverlay.style.display = "none"
+        this.#status = false
     }
 
-    static async #head(newDoc, newUrl, oldUrl){
-        if(newUrl == oldUrl) return
-        document.title = newDoc.title? newDoc.title : document.title
-        for(const meta of document.head.querySelectorAll(":not([data-page='"+ newUrl +"'])[data-page]")){
-            meta.remove()
+    static #rectiNewPage(){
+        for(const tag of this.#newPage.head.querySelectorAll("[data-jside-default], [data-jside]")){
+            tag.remove()
         }
-        for(const kid of newDoc.head.querySelectorAll(":not(title)")){
-            kid.dataset.page = newUrl
-            document.head.append(kid)
+        for(const tag of this.#newPage.body.querySelectorAll("[data-jside-default], [data-jside]")){
+            tag.remove()
+        }
+        for(const tag of this.#newPage.querySelectorAll("noscript[data-jside-page-script]")){
+            let script = this.#newPage.createElement("script")
+            if(tag.dataset.jsidePageScript != ""){
+                script.src = tag.dataset.jsidePageScript
+            }
+            else{
+                script.textContent = tag.textContent
+            }
+            script.dataset.jsidePage = ""
+            tag.replaceWith(script)
+        }
+    }
+
+    static #head(newUrl, oldUrl){
+        if(newUrl == oldUrl) return
+        for(const tag of this.#newPage.head.querySelectorAll("[data-jside-page]:not(link[rel='stylesheet'])")){
+            tag.dataset.jsidePage = newUrl
+            this.elementHead.appendChild(tag)
+        }
+        for(const tag of this.elementHead.querySelectorAll(":not([data-jside-page='"+ newUrl +"']):not([data-jside-default]):not([data-jside])")){
+            tag.remove()
         }
     }
 
     static async #loadCss(newUrl){
-        await forPromise(loadDiv.querySelectorAll("link[rel='stylesheet']"), (css) => {
+        await forPromise(this.#newPage.querySelectorAll("link[rel='stylesheet']"), (css) => {
             return new Promise((resolve) => {
-                css.dataset.page = newUrl
-                cssDiv.appendChild(css)
+                css.dataset.jsidePage = newUrl
+                this.elementCss.appendChild(css)
                 css.onload = resolve
                 css.onerror = resolve
             })
         })
+        for await(const tag of this.#newPage.querySelectorAll("style")){
+            tag.dataset.jsidePage = newUrl
+            this.elementCss.appendChild(tag)
+        }
+    }
+
+    static #body(){
+        for(let index = 1; this.elementBody.children[index] || this.#newPage.body.children[0]; index++){
+            if(this.#newPage.body.children[0]?.dataset?.c && this.elementBody.children[index]?.dataset?.c && this.elementBody.children[index].dataset.c == this.#newPage.body.children[0].dataset.c)this.#newPage.body.children[0].remove()
+            else if(this.elementBody.children[index] && this.#newPage.body.children[0])this.elementBody.children[index].replaceWith(this.#newPage.body.children[0])
+            else if (!this.elementBody.children[index] && this.#newPage.body.children[0])this.elementBody.append(this.#newPage.body.children[0])
+            else if (this.elementBody.children[index] && !this.#newPage.body.children[0]){
+                this.elementBody.children[index].remove()
+                index--
+            }
+        }
     }
 
     static async #loadScripts(newUrl, oldUrl){
@@ -67,7 +116,7 @@ class tp{
             this.#moduleVariable[loc.parse(newUrl).path[0]] = {}
             mv = this.#moduleVariable[loc.parse(newUrl).path[0]]
         }
-        for await(const script of bodyDiv.querySelectorAll("script")){
+        for await(const script of document.querySelectorAll("script:not([data-jside]):not([data-jside-default])")){
             await new Promise(async (resolve) => {
                 let s = document.createElement("script")
                 s.type = script.type
@@ -97,7 +146,7 @@ class tp{
                 }
                 else{
                     if(!script.dataset.scriptId?.startsWith("local-")){
-                        s.dataset.scriptId = "local-" + (Math.random() + 1).toString(36).substring(7);
+                        s.dataset.scriptId = "local-" + (Math.random() + 1).toString(36)
                         this.#scriptsPage[newUrl.split("?")[0]][s.dataset.scriptId] = {
                             load: ()=>{},
                             changeModule: ()=>{},
@@ -124,33 +173,8 @@ class tp{
         }
     }
 
-    static #href(){
-        for(const a of bodyDiv.querySelectorAll("a[href]")){
-            let onclick = a.onclick? a.onclick.bind({}) : () => {}
-            if(a.dataset.already) continue
-            a.dataset.already = "true"
-            a.onclick = (e) => {
-                new tp(a.href.replace(window.location.origin, ""))
-                onclick(e)
-                return false
-            }
-        }
-    }
-
-    static #body(){
-        for(let index = 0; bodyDiv.children[index] || loadDiv.children[0]; index++){
-            if(loadDiv.children[0]?.dataset?.c && bodyDiv.children[index]?.dataset?.c && bodyDiv.children[index].dataset.c == loadDiv.children[0].dataset.c)loadDiv.children[0].remove()
-            else if(bodyDiv.children[index] && loadDiv.children[0])bodyDiv.children[index].replaceWith(loadDiv.children[0])
-            else if (!bodyDiv.children[index] && loadDiv.children[0])bodyDiv.append(loadDiv.children[0])
-            else if (bodyDiv.children[index] && !loadDiv.children[0]){
-                bodyDiv.children[index].remove()
-                index--
-            }
-        }
-    }
-
     static async #unloadScripts(newUrl, oldUrl){
-        for(const scriptId in this.#scriptsPage[oldUrl.split("?")[0]]){
+        for await(const scriptId of Object.keys(this.#scriptsPage[oldUrl.split("?")[0]] || {})){
             await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].unload(this.#pageVariable[oldUrl.split("?")[0]], this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad)
             if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0])await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].changeModule(this.#moduleVariable[loc.parse(oldUrl).path[0]])
             this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad = {}
@@ -167,8 +191,11 @@ class tp{
     }
 
     static async #unloadCss(newUrl){
-        for(const css of cssDiv.querySelectorAll("link:not([data-page='"+ newUrl +"'])")){
+        for(const css of this.elementCss.querySelectorAll("link:not([data-jside-page='"+ newUrl +"'])")){
             css.remove()
+        }
+        for(const style of this.elementCss.querySelectorAll("style:not([data-jside-page='"+ newUrl +"'])")){
+            style.remove()
         }
     }
 
@@ -221,6 +248,7 @@ class tp{
         })
     }
 
+    
     static error = (e) => {throw e}
 
     static #page = window.sessionStorage.getItem("page")? JSON.parse(window.sessionStorage.getItem("page")) : {}
@@ -233,15 +261,74 @@ class tp{
 
     static #moduleVariable = {}
 
+    static #status = false
+
+    static #timeoutLoading = false
+
+    static timeoutLoadingValue = 500
+    
+    /**
+     * @type {Document}
+     */
+    static #newPage = {}
+
+    /**
+     * @type {Element}
+     */
+     static elementHead = {}
+
+    /**
+     * @type {Body}
+     */
+    static elementBody = {}
+
+    /**
+     * @type {Element}
+     */
+    static elementCss = {}
+
+    /**
+     * @type {Element}
+     */
+    static elementLoadingOverlay = {}
+
+    /**
+     * @type {Element}
+     */
+    static elementJside = {}
+
     static on(event, fnc){
-        this.#scriptsPage[this.#currentUrl][document.currentScript.dataset.scriptId][event] = fnc
+        this.#scriptsPage[this.#currentUrl.split("?")[0]][document.currentScript.dataset.scriptId][event] = fnc
     }
+
 }
 
-const bodyDiv = document.getElementById("bodyDiv")
-const loadDiv = document.getElementById("loadDiv")
-const cssDiv = document.getElementById("cssDiv")
 var pv = {}
 var mv = {}
 
-new tp(window.location.href.replace(window.location.origin, ""), "?")
+document.addEventListener("click", (e) => {
+    if(e.target.nodeName === "A" && e.target.href){
+        e.preventDefault()
+        if(e.target.onclick && e.target.onclick(e.target) === false){
+            return
+        }
+        new tp(e.target.href.replace(window.location.origin, ""))
+    }
+})
+
+
+window.onload = () => {
+    for(const tag of document.querySelectorAll("[data-jside-page]")){
+        tag.remove()
+    }
+
+    tp.elementJside = document.body.children[0]
+    tp.elementBody = document.body
+    tp.elementCss = tp.elementJside.querySelector("#css")
+    tp.elementLoadingOverlay = tp.elementJside.querySelector("#loading-overlay")
+    tp.elementHead = document.head
+
+    tp.elementLoadingOverlay.style.backgroundColor = ""
+
+    new tp(window.location.href.replace(window.location.origin, ""), "?")
+}

@@ -1,6 +1,6 @@
 {
   "name": "jside-vfw",
-  "version": "0.0.90",
+  "version": "0.1.2",
   "description": "okok",
   "main": "index.js",
   "scripts": {},
@@ -9,8 +9,11 @@
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "express": "^4.17.2",
-    "jsdom": "^19.0.0",
+    "jsdom": "^20.0.1",
     "socket.io": "^4.5.1"
   },
-  "type": "module"
+  "type": "module",
+  "nodemonConfig": {
+    "ext": "*.mjs,*.html,*.json,*.js"
+  }
 }
