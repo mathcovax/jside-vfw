@@ -1,11 +1,19 @@
-async function tem(action, body={}, label, tempText=""){
-    if(label === undefined){
-        label = "labelInfo"
-    }
+async function tem(action, body={}, option={}){
+    option.tempText = option.tempText || ""
+    option.id == option.id || "labelInfo"
+    option.scrollTo == option.scrollTo || true
+    option.loadingOverlay = option.loadingOverlay === true? tp.timeoutLoadingOverlay : typeof option.loadingOverlay === "number"? option.loadingOverlay : false
     return await new Promise((resolve, reject) => {
-        if(document.getElementById(label)){
-            document.getElementById(label).style.color = ""
-            document.getElementById(label).innerText = tempText
+        if(option.loadingOverlay !== false){
+            option.loadingOverlay = setTimeout(() => {
+                tp.elementLoadingOverlay.dataset.jsideProcess = "tem"
+                tp.elementLoadingOverlay.style.display = "block"
+            }, option.loadingOverlay);
+        }
+
+        if(document.getElementById(option.id)){
+            document.getElementById(option.id).style.color = ""
+            document.getElementById(option.id).innerText = option.tempText
         }
         fetch(window.location.origin + "/jside/extPost/" + action + loc.urlArgs, {
             method: "POST",
@@ -17,26 +25,40 @@ async function tem(action, body={}, label, tempText=""){
         })
         .then( response => response.json() )
         .then( response => {
+            if(option.loadingOverlay !== false){
+                clearTimeout(option.loadingOverlay)
+                if(response.status != "r" && tp.elementLoadingOverlay.dataset.jsideProcess == "tem")tp.elementLoadingOverlay.style.display = "none"
+                else if(response.status == "r")tp.elementLoadingOverlay.dataset.jsideProcess = "tp"
+            }
+
             switch(response.status){
                 case "e":
-                    if(document.getElementById(label) && response?.data?.info){
-                        document.getElementById(label).style.color = "red"
-                        document.getElementById(label).innerText = response.data.info
+                    if(document.getElementById(option.id) && response.info){
+                        document.getElementById(option.id).style.color = "red"
+                        document.getElementById(option.id).innerText = response.info
+                        if(option.scrollTo === true)document.getElementById(option.id).scrollIntoView({behavior: "smooth"})
+                    }
+                    else if(document.getElementById(option.id)){
+                        document.getElementById(option.id).innerText = ""
                     }
                     reject(response.data)
                     break;
 
                 case "s":
-                    if(document.getElementById(label) && response?.data?.info){
-                        document.getElementById(label).style.color = "green"
-                        document.getElementById(label).innerText = response.data.info
+                    if(document.getElementById(option.id) && response.info){
+                        document.getElementById(option.id).style.color = "green"
+                        document.getElementById(option.id).innerText = response.info
+                        if(option.scrollTo === true)document.getElementById(option.id).scrollIntoView({behavior: "smooth"})
+                    }
+                    else if(document.getElementById(option.id)){
+                        document.getElementById(option.id).innerText = ""
                     }
                     resolve(response.data)
                     break;
 
                 case "r":
-                    window.location.href = response.url
-                    resolve(response)
+                    new tp(response.url)
+                    reject()
                     break; 
                 
                 default:
@@ -46,7 +68,6 @@ async function tem(action, body={}, label, tempText=""){
             }
         })
         .catch((error) => {
-            console.error(error);
             reject(error)
         })
     })

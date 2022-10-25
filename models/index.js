@@ -8,19 +8,32 @@ export default{
      */
     before(root, module){
         /*
-        module.json({})
+        module.json = {}
 
         module.httpAcces((req, res) => {
-            return true
+            res.redirect("" + req.url)
+            return //request stop here
         })
 
         module.get("", (req, res, short) => {
-            res.redirect("" + req.url)
+            res.send()
+        }, (res, req, httpAcces) => {
+            return true //request continue to get
+        })
+
+        module.getHttpAcces((res, req, httpAcces) => {
+            return false //request refuse acces and send 403 error
         })
 
         module.post("getdata", (req, res, short) => {
             short.s({info: "ok!"})
         })
+
+        Page render:
+         - {#} > global json (root.json)
+         - {%} > module json (module.json)
+         - {$} > pageRender object (module.json)
+         - {*} > component object (whent he call in page)
         */
     },
 
@@ -30,12 +43,6 @@ export default{
      * @param {Module} module 
      */
     after(root, module){
-        /*
-        module.getPage("exemple").render({blabla: "ok !"})
-
-        module.get("/test", (req, res, short) => {
-            short.sp("testPage")
-        })
-        */
+        
     }
 }

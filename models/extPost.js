@@ -2,11 +2,10 @@ import express from "express"
 
 /**
  * @typedef {Object} postshort
- * @property {JSON} json
  * @property {JSON} gson
- * @property {(data: JSON) void} s
- * @property {(data: JSON) void} e
- * @property {(data: url) void} r
+ * @property {(data: JSON)} s 
+ * @property {(data: JSON)} e
+ * @property {(data: url)} r
  * @property {(info: String) {s:(data: JSON)void, e:(data: JSON)void}} msg
  */
 
@@ -16,5 +15,5 @@ import express from "express"
  * @param {postshort} short
  */
 export default function(req, res, short){
-    
+
 }

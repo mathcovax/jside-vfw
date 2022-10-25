@@ -4,8 +4,9 @@ class tp{
         this.constructor.#status = true
 
         this.constructor.#timeoutLoading = setTimeout(() => {
+            this.constructor.elementLoadingOverlay.dataset.jsideProcess = "tp"
             this.constructor.elementLoadingOverlay.style.display = "block"
-        }, this.constructor.timeoutLoadingValue);
+        }, this.constructor.timeoutLoadingOverlay);
 
         newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.parse(newUrl).urlArgs
         oldUrl = oldUrl === "?"? oldUrl : this.constructor.#rectiLink(loc.parse(oldUrl).urlPath) + loc.parse(oldUrl).urlArgs
@@ -46,7 +47,7 @@ class tp{
         this.#unloadScripts(newUrl, oldUrl)
         this.#unloadCss(newUrl)
         clearTimeout(this.#timeoutLoading)
-        this.elementLoadingOverlay.style.display = "none"
+        if(this.elementLoadingOverlay.dataset.jsideProcess == "tp")this.elementLoadingOverlay.style.display = "none"
         this.#status = false
     }
 
@@ -91,6 +92,10 @@ class tp{
             })
         })
         for await(const tag of this.#newPage.querySelectorAll("style")){
+            if(this.elementCss.querySelector("style[data-style-id='" + tag.dataset.styleId + "'][data-jside-page='"+ newUrl +"']")){
+                tag.remove()
+                continue
+            }
             tag.dataset.jsidePage = newUrl
             this.elementCss.appendChild(tag)
         }
@@ -106,6 +111,7 @@ class tp{
                 index--
             }
         }
+        this.elementBody.dataset.jsideScoped = this.#newPage.body.dataset.jsideScoped
     }
 
     static async #loadScripts(newUrl, oldUrl){
@@ -116,6 +122,8 @@ class tp{
             this.#moduleVariable[loc.parse(newUrl).path[0]] = {}
             mv = this.#moduleVariable[loc.parse(newUrl).path[0]]
         }
+        await this.#launchScriptsDefault("load", {newUrl: newUrl, oldUrl: oldUrl})
+
         for await(const script of document.querySelectorAll("script:not([data-jside]):not([data-jside-default])")){
             await new Promise(async (resolve) => {
                 let s = document.createElement("script")
@@ -174,9 +182,13 @@ class tp{
     }
 
     static async #unloadScripts(newUrl, oldUrl){
+        await this.#launchScriptsDefault("unload", {newUrl: newUrl, oldUrl: oldUrl})
         for await(const scriptId of Object.keys(this.#scriptsPage[oldUrl.split("?")[0]] || {})){
             await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].unload(this.#pageVariable[oldUrl.split("?")[0]], this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad)
-            if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0])await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].changeModule(this.#moduleVariable[loc.parse(oldUrl).path[0]])
+            if(loc.parse(oldUrl).path[0] != loc.parse(newUrl).path[0]){
+                await this.#launchScriptsDefault("changeModule", {newUrl: newUrl, oldUrl: oldUrl})
+                await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].changeModule(this.#moduleVariable[loc.parse(oldUrl).path[0]])
+            }
             this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad = {}
             if(scriptId.startsWith("local-")) delete this.#scriptsPage[oldUrl.split("?")[0]][scriptId]
         }
@@ -248,6 +260,12 @@ class tp{
         })
     }
 
+    static async #launchScriptsDefault(event, obj){
+        for await(const fnc of this.#scriptsDefault[event]){
+            await fnc(obj)
+        }
+    }
+
     
     static error = (e) => {throw e}
 
@@ -257,6 +275,12 @@ class tp{
 
     static #pageVariable = {}
 
+    static #scriptsDefault = {
+        load: [],
+        unload: [],
+        changeModule: [],
+    }
+
     static #currentUrl = ""
 
     static #moduleVariable = {}
@@ -265,7 +289,7 @@ class tp{
 
     static #timeoutLoading = false
 
-    static timeoutLoadingValue = 500
+    static timeoutLoadingOverlay = 500
     
     /**
      * @type {Document}
@@ -298,7 +322,12 @@ class tp{
     static elementJside = {}
 
     static on(event, fnc){
-        this.#scriptsPage[this.#currentUrl.split("?")[0]][document.currentScript.dataset.scriptId][event] = fnc
+        if(document.currentScript.dataset.scriptId != undefined){
+            this.#scriptsPage[this.#currentUrl.split("?")[0]][document.currentScript.dataset.scriptId][event] = fnc
+        }
+        else if(document.currentScript.dataset.jsideDefault != undefined){
+            this.#scriptsDefault[event].push(fnc)
+        }
     }
 
 }
@@ -316,6 +345,9 @@ document.addEventListener("click", (e) => {
     }
 })
 
+window.addEventListener('popstate', (e) => {
+    window.location.reload()
+})
 
 window.onload = () => {
     for(const tag of document.querySelectorAll("[data-jside-page]")){
@@ -327,6 +359,18 @@ window.onload = () => {
     tp.elementCss = tp.elementJside.querySelector("#css")
     tp.elementLoadingOverlay = tp.elementJside.querySelector("#loading-overlay")
     tp.elementHead = document.head
+
+    let div = document.createElement("div")
+    div.style.display = "none"
+    div.id = "import-body"
+    div.innerHTML = tp.elementJside.querySelector("#import-body").contentWindow.document.body.innerHTML
+    tp.elementJside.querySelector("#import-body").replaceWith(div)
+    for(const ns of tp.elementJside.querySelector("#import-body").querySelectorAll("noscript")){
+        let s = document.createElement("script")
+        s.textContent = ns.textContent.replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+        s.dataset.jsideDefault = ""
+        ns.replaceWith(s)
+    }
 
     tp.elementLoadingOverlay.style.backgroundColor = ""
 

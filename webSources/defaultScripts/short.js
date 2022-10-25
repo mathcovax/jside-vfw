@@ -15,6 +15,8 @@ class loc{
         this.constructor.urlPath = window.location.href.replace(window.location.origin, "").split("?")[0]
 
         this.constructor.path = window.location.href.replace(window.location.origin + "/", "").split("?")[0].split("/")
+
+        this.constructor.url = window.location.href.replace(window.location.origin, "")
     }
 
     static urlArgs
@@ -24,6 +26,8 @@ class loc{
     static urlPath
     
     static path
+
+    static url
     
     static parse(url){
         return {
@@ -38,7 +42,8 @@ class loc{
                 }
             })(),
             urlPath: url.replace(window.location.origin, "").split("?")[0],
-            path: url.replace(window.location.origin + "/", "").split("?")[0].split("/")
+            path: url.replace(window.location.origin + "/", "").split("?")[0].split("/"),
+            url: url.replace(window.location.origin, "")
         }
     }
 }
