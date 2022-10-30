@@ -1,20 +1,24 @@
 {
   "name": "jside-vfw",
-  "version": "0.1.97",
+  "version": "0.2.16",
   "description": "okok",
   "main": "index.js",
   "scripts": {},
   "author": "matechcide",
   "license": "ISC",
   "dependencies": {
+    "chokidar": "^3.5.3",
     "cookie-parser": "^1.4.6",
     "express": "^4.17.2",
     "jsdom": "^20.0.1",
     "sass": "^1.55.0",
-    "socket.io": "^4.5.1"
+    "socket.io": "^4.5.3"
   },
   "type": "module",
   "nodemonConfig": {
     "ext": "*.mjs,*.html,*.json,*.js"
+  },
+  "bin": {
+    "jside": "bin/index.js"
   }
 }

@@ -10,9 +10,9 @@ class tp{
 
         newUrl = this.constructor.#rectiLink(loc.parse(newUrl).urlPath) + loc.parse(newUrl).urlArgs
         oldUrl = oldUrl === "?"? oldUrl : this.constructor.#rectiLink(loc.parse(oldUrl).urlPath) + loc.parse(oldUrl).urlArgs
-        if(this.constructor.#page[newUrl.split("?")[0]]){
+        if(this.constructor.page[newUrl.split("?")[0]]){
             this.constructor.#httpAcces(newUrl).then(() => {
-                this.constructor.#upDatePage(this.constructor.#page[newUrl.split("?")[0]], newUrl, oldUrl)
+                this.constructor.#upDatePage(this.constructor.page[newUrl.split("?")[0]], newUrl, oldUrl)
             })
         }
         else{
@@ -23,14 +23,16 @@ class tp{
     }
 
     static #rectiLink(newUrl){
-        return window.location.origin + (!newUrl || newUrl[0] == "/"? "" : "/") + (newUrl[newUrl.length-1] == "/"? newUrl.substring(0, newUrl.length-1) : newUrl)
+        return window.location.origin + (!newUrl || newUrl[0] == "/"? "" : "/") + (newUrl[newUrl.length-1] == "/"? newUrl.substring(0, newUrl.length-1) : newUrl).replace(/#/g, "")
     }
 
     static async #upDatePage(rep, newUrl, oldUrl){
         if(oldUrl == newUrl){
-            window.location.reload()
-            this.#status = false
-            return
+            await this.#unloadScripts("?", oldUrl)
+            while(this.elementBody.children[1]) {
+                this.elementBody.children[1].remove()
+            }
+            oldUrl = "?"
         }
         this.#currentUrl = newUrl
         newUrl = newUrl.split("?")[0]
@@ -58,7 +60,7 @@ class tp{
         for(const tag of this.#newPage.body.querySelectorAll("[data-jside-default], [data-jside]")){
             tag.remove()
         }
-        for(const tag of this.#newPage.querySelectorAll("noscript[data-jside-page-script]")){
+        for(const tag of this.#newPage.querySelectorAll("style[data-jside-page-script]")){
             let script = this.#newPage.createElement("script")
             if(tag.dataset.jsidePageScript != ""){
                 script.src = tag.dataset.jsidePageScript
@@ -103,7 +105,15 @@ class tp{
 
     static #body(){
         for(let index = 1; this.elementBody.children[index] || this.#newPage.body.children[0]; index++){
-            if(this.#newPage.body.children[0]?.dataset?.c && this.elementBody.children[index]?.dataset?.c && this.elementBody.children[index].dataset.c == this.#newPage.body.children[0].dataset.c)this.#newPage.body.children[0].remove()
+            if(this.#newPage.body.children[0]?.dataset?.c && this.elementBody.children[index]?.dataset?.c && this.elementBody.children[index].dataset.c == this.#newPage.body.children[0].dataset.c){
+                if(this.elementBody.children[index].dataset.jsideScoped != this.#newPage.body.children[0].dataset.jsideScoped){
+                    this.elementBody.children[index].dataset.jsideScoped = this.#newPage.body.children[0].dataset.jsideScoped
+                    for(const tag of this.elementBody.children[index].querySelectorAll("[data-jside-scoped]")){
+                        tag.dataset.jsideScoped = this.#newPage.body.children[0].dataset.jsideScoped
+                    }
+                }
+                this.#newPage.body.children[0].remove()
+            }
             else if(this.elementBody.children[index] && this.#newPage.body.children[0])this.elementBody.children[index].replaceWith(this.#newPage.body.children[0])
             else if (!this.elementBody.children[index] && this.#newPage.body.children[0])this.elementBody.append(this.#newPage.body.children[0])
             else if (this.elementBody.children[index] && !this.#newPage.body.children[0]){
@@ -159,6 +169,7 @@ class tp{
                             load: ()=>{},
                             changeModule: ()=>{},
                             unload: ()=>{},
+                            destroy: () => {},
                             returnLoad: {}
                         }
                         s.innerHTML = script.innerHTML
@@ -189,6 +200,7 @@ class tp{
                 await this.#launchScriptsDefault("changeModule", {newUrl: newUrl, oldUrl: oldUrl})
                 await this.#scriptsPage[oldUrl.split("?")[0]][scriptId].changeModule(this.#moduleVariable[loc.parse(oldUrl).path[0]])
             }
+            if(!document.querySelector("script[data-script-id='" + scriptId + "']"))this.#scriptsPage[oldUrl.split("?")[0]][scriptId].destroy()
             this.#scriptsPage[oldUrl.split("?")[0]][scriptId].returnLoad = {}
             if(scriptId.startsWith("local-")) delete this.#scriptsPage[oldUrl.split("?")[0]][scriptId]
         }
@@ -220,8 +232,8 @@ class tp{
                     resolve()
                 }
                 else{
-                    delete this.#page[newUrl.split("?")[0]]
-                    window.sessionStorage.setItem('page', JSON.stringify(this.#page))
+                    delete this.page[newUrl.split("?")[0]]
+                    window.sessionStorage.setItem('page', JSON.stringify(this.page))
                     window.location.reload()
                 }
             }).catch(this.error)
@@ -240,8 +252,8 @@ class tp{
                             if(!response.headers.get("nosave")){
                                 let link = response.url.split("?")[0]
                                 link = link[link.length-1] == "/"? link.substring(0, link.length-1) : link
-                                this.#page[link] = rep
-                                window.sessionStorage.setItem('page', JSON.stringify(this.#page))
+                                this.page[link] = rep
+                                window.sessionStorage.setItem('page', JSON.stringify(this.page))
                             }
                             resolve({html: rep, repUrl: response.url})
                         }
@@ -266,10 +278,13 @@ class tp{
         }
     }
 
-    
+    static reload(){
+        new tp(this.#currentUrl)
+    }
+
     static error = (e) => {throw e}
 
-    static #page = window.sessionStorage.getItem("page")? JSON.parse(window.sessionStorage.getItem("page")) : {}
+    static page = {} //window.sessionStorage.getItem("page")? JSON.parse(window.sessionStorage.getItem("page")) : {}
     
     static #scriptsPage = {}
 
@@ -334,14 +349,23 @@ class tp{
 
 var pv = {}
 var mv = {}
+var v = {}
 
 document.addEventListener("click", (e) => {
     if(e.target.nodeName === "A" && e.target.href){
         e.preventDefault()
         if(e.target.onclick && e.target.onclick(e.target) === false){
-            return
+            return false
         }
-        new tp(e.target.href.replace(window.location.origin, ""))
+        if(e.target.href.replace(window.location.href, "")[0] != "#")new tp(e.target.href.replace(window.location.origin, ""))
+        else{
+            try {   
+                document.querySelector(loc.parse(e.target.href).url.substring(1)).scrollIntoView({behavior: "smooth"})
+            } catch (error) {
+                
+            }
+            
+        }
     }
 })
 
@@ -350,6 +374,7 @@ window.addEventListener('popstate', (e) => {
 })
 
 window.onload = () => {
+    tp.page[window.location.href[window.location.href.length-1] == "/"?window.location.href.slice(0, -1) : window.location.href] = document.documentElement.outerHTML
     for(const tag of document.querySelectorAll("[data-jside-page]")){
         tag.remove()
     }

@@ -59,7 +59,7 @@ async function tm(action, body={}, option={}){
 
                 case "r":
                     new tp(response.url)
-                    reject()
+                    reject("redirect to " + response.url)
                     break; 
                 
                 default:
