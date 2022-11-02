@@ -13,6 +13,6 @@ import express from "express"
  * @param {accesshort} short
  * @return {Boolean}
  */
-export default function(req, res, httpAcces, short){
-    return true
+export default function(req, res, short, httpAcces){
+    return httpAcces()
 }

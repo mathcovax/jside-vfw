@@ -17,7 +17,7 @@ class tp{
         }
         else{
             this.constructor.#getPage(newUrl).then((obj) => {
-                this.constructor.#upDatePage(obj.html, obj.repUrl, oldUrl)
+                this.constructor.#upDatePage(obj.html, (this.constructor.#rectiLink(loc.parse(obj.repUrl).urlPath) + loc.parse(obj.repUrl).urlArgs), oldUrl)
             })
         }
     }
@@ -28,10 +28,10 @@ class tp{
 
     static async #upDatePage(rep, newUrl, oldUrl){
         if(oldUrl == newUrl){
-            await this.#unloadScripts("?", oldUrl)
             while(this.elementBody.children[1]) {
                 this.elementBody.children[1].remove()
             }
+            await this.#unloadScripts("?", oldUrl)
             oldUrl = "?"
         }
         this.#currentUrl = newUrl

@@ -1,12 +1,10 @@
-import { Root, Module } from "jside-vfw";
+import { Module } from "jside-vfw";
 
 export default{
     /**
-     * 
-     * @param {Root} root 
      * @param {Module} module 
      */
-    before(root, module){
+    before(module){
         /*
         module.json = {}
 
@@ -38,11 +36,9 @@ export default{
     },
 
     /**
-     * 
-     * @param {Root} root 
      * @param {Module} module 
      */
-    after(root, module){
+    after(module){
         
     }
 }
