@@ -1,24 +1,22 @@
 {
-  "name": "jside-vfw",
-  "version": "0.2.37",
+  "name": "vieujs",
+  "version": "0.2.81",
   "description": "okok",
   "main": "index.js",
   "scripts": {},
-  "author": "matechcide",
+  "author": "mathcovax",
   "license": "ISC",
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "express": "^4.17.2",
     "jsdom": "^20.0.1",
+    "prettier": "^2.7.1",
     "sass": "^1.55.0",
     "socket.io": "^4.5.3",
     "watcher": "^1.2.0"
   },
   "type": "module",
-  "nodemonConfig": {
-    "ext": "*.mjs,*.html,*.json,*.js"
-  },
   "bin": {
-    "jside": "bin/index.js"
+    "vieujs": "bin/index.js"
   }
 }

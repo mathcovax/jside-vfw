@@ -7,7 +7,7 @@ async function tm(action, body={}, option={}){
     return await new Promise((resolve, reject) => {
         if(option.loadingOverlay !== false){
             option.loadingOverlay = setTimeout(() => {
-                tp.elementLoadingOverlay.dataset.jsideProcess = "tm"
+                tp.elementLoadingOverlay.dataset.vieujsProcess = "tm"
                 tp.elementLoadingOverlay.style.display = "block"
             }, option.loadingOverlay);
         }
@@ -28,8 +28,8 @@ async function tm(action, body={}, option={}){
         .then( response => {
             if(option.loadingOverlay !== false){
                 clearTimeout(option.loadingOverlay)
-                if(response.status != "r" && tp.elementLoadingOverlay.dataset.jsideProcess == "tm")tp.elementLoadingOverlay.style.display = "none"
-                else if(response.status == "r")tp.elementLoadingOverlay.dataset.jsideProcess = "tp"
+                if(response.status != "r" && tp.elementLoadingOverlay.dataset.vieujsProcess == "tm")tp.elementLoadingOverlay.style.display = "none"
+                else if(response.status == "r")tp.elementLoadingOverlay.dataset.vieujsProcess = "tp"
             }
 
             switch(response.status){

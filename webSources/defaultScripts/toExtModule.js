@@ -6,7 +6,7 @@ async function tem(action, body={}, option={}){
     return await new Promise((resolve, reject) => {
         if(option.loadingOverlay !== false){
             option.loadingOverlay = setTimeout(() => {
-                tp.elementLoadingOverlay.dataset.jsideProcess = "tem"
+                tp.elementLoadingOverlay.dataset.vieujsProcess = "tem"
                 tp.elementLoadingOverlay.style.display = "block"
             }, option.loadingOverlay);
         }
@@ -15,7 +15,7 @@ async function tem(action, body={}, option={}){
             document.getElementById(option.id).style.color = ""
             document.getElementById(option.id).innerText = option.tempText
         }
-        fetch(window.location.origin + "/jside/extPost/" + action + loc.urlArgs, {
+        fetch(window.location.origin + "/vieujs/extPost/" + action + loc.urlArgs, {
             method: "POST",
             headers: {
                 'Accept': 'application/json',
@@ -27,8 +27,8 @@ async function tem(action, body={}, option={}){
         .then( response => {
             if(option.loadingOverlay !== false){
                 clearTimeout(option.loadingOverlay)
-                if(response.status != "r" && tp.elementLoadingOverlay.dataset.jsideProcess == "tem")tp.elementLoadingOverlay.style.display = "none"
-                else if(response.status == "r")tp.elementLoadingOverlay.dataset.jsideProcess = "tp"
+                if(response.status != "r" && tp.elementLoadingOverlay.dataset.vieujsProcess == "tem")tp.elementLoadingOverlay.style.display = "none"
+                else if(response.status == "r")tp.elementLoadingOverlay.dataset.vieujsProcess = "tp"
             }
 
             switch(response.status){
